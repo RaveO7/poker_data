@@ -77,10 +77,10 @@ function App() {
       )}
 
       <main className="space-y-6">
-        <SessionBar data={data} tick={tick} onStart={startSession} onEnd={endSession} />
         <GlobalStats data={data} />
         <ChartsPanel data={data} />
         <StatsOverview data={data} />
+        <SessionBar data={data} tick={tick} onStart={startSession} onEnd={endSession} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <SpinTracker
