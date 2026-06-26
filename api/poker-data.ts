@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { list, put } from '@vercel/blob'
-import { createHistoricalSeed, normalizeData, type PokerData } from './lib/data'
+import { createHistoricalSeed, normalizeData, type PokerData } from './lib/data.js'
 
 const BLOB_PATH = 'poker-tracker.json'
 
@@ -26,7 +26,7 @@ async function readBlobData(): Promise<PokerData> {
 async function writeBlobData(data: unknown): Promise<PokerData> {
   const normalized = normalizeData(data as Partial<PokerData>)
   await put(BLOB_PATH, JSON.stringify(normalized, null, 2), {
-    access: 'private',
+    access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
