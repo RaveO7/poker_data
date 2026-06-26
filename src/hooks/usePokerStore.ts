@@ -172,6 +172,7 @@ export function usePokerStore() {
 
   const resetData = useCallback(async () => {
     if (!window.confirm('Supprimer toutes les données ? Cette action est irréversible.')) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
     try {
       const empty = await clearAllData()
       lastPersisted.current = JSON.stringify(empty)

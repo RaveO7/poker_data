@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createEmptyData, createHistoricalSeed } from './seed.mjs'
+import { createEmptyData } from './seed.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '..')
@@ -33,7 +33,7 @@ export function ensureDataFile() {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
   if (!existsSync(DATA_FILE_PATH)) {
-    writeFileSync(DATA_FILE_PATH, JSON.stringify(createHistoricalSeed(), null, 2), 'utf-8')
+    writeFileSync(DATA_FILE_PATH, JSON.stringify(createEmptyData(), null, 2), 'utf-8')
   }
 }
 

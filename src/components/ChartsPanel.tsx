@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react'
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -59,8 +57,7 @@ function CustomTooltip({
 }
 
 export function ChartsPanel({ data }: ChartsPanelProps) {
-  const [period, setPeriod] = useState<ChartPeriod>('day')
-  const [view, setView] = useState<'bars' | 'lines'>('bars')
+  const [period, setPeriod] = useState<ChartPeriod>('session')
   const [hiddenSeries, setHiddenSeries] = useState<Set<SeriesKey>>(new Set())
 
   const chartData = useMemo(() => getChartData(data, period), [data, period])
@@ -101,14 +98,6 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
     )
   }
 
-  const chartLegend = (
-    <Legend
-      wrapperStyle={{ color: '#e8f0eb', fontSize: 12, cursor: 'pointer' }}
-      onClick={handleLegendClick}
-      formatter={legendFormatter}
-    />
-  )
-
   return (
     <Card title="📈 Graphiques">
       <div className="mb-4 flex flex-wrap gap-2">
@@ -128,29 +117,9 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
         ))}
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setView('bars')}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-            view === 'bars' ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'
-          }`}
-        >
-          Barres
-        </button>
-        <button
-          type="button"
-          onClick={() => setView('lines')}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-            view === 'lines' ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'
-          }`}
-        >
-          Courbes
-        </button>
-        <span className="self-center text-xs text-white/40">
-          · Cliquez sur la légende pour masquer / afficher une série
-        </span>
-      </div>
+      <p className="mb-4 text-xs text-white/40">
+        Cliquez sur la légende pour masquer / afficher une série
+      </p>
 
       {!hasData ? (
         <p className="py-12 text-center text-white/50">
@@ -160,85 +129,51 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
         <>
           <div className="h-72 w-full sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              {view === 'bars' ? (
-                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: '#9ca3af', fontSize: 11 }}
-                    interval={chartData.length > 8 ? 'preserveStartEnd' : 0}
-                    angle={chartData.length > 5 ? -25 : 0}
-                    textAnchor={chartData.length > 5 ? 'end' : 'middle'}
-                    height={chartData.length > 5 ? 60 : 30}
-                  />
-                  <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  {chartLegend}
-                  <Bar
-                    dataKey="played"
-                    name="Parties jouées"
-                    fill={COLORS.played}
-                    radius={[4, 4, 0, 0]}
-                    hide={hiddenSeries.has('played')}
-                  />
-                  <Bar
-                    dataKey="final"
-                    name="Finales"
-                    fill={COLORS.final}
-                    radius={[4, 4, 0, 0]}
-                    hide={hiddenSeries.has('final')}
-                  />
-                  <Bar
-                    dataKey="won"
-                    name="Victoires"
-                    fill={COLORS.won}
-                    radius={[4, 4, 0, 0]}
-                    hide={hiddenSeries.has('won')}
-                  />
-                </BarChart>
-              ) : (
-                <LineChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: '#9ca3af', fontSize: 11 }}
-                    interval={chartData.length > 8 ? 'preserveStartEnd' : 0}
-                    angle={chartData.length > 5 ? -25 : 0}
-                    textAnchor={chartData.length > 5 ? 'end' : 'middle'}
-                    height={chartData.length > 5 ? 60 : 30}
-                  />
-                  <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  {chartLegend}
-                  <Line
-                    type="monotone"
-                    dataKey="played"
-                    name="Parties jouées"
-                    stroke={COLORS.played}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    hide={hiddenSeries.has('played')}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="final"
-                    name="Finales"
-                    stroke={COLORS.final}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    hide={hiddenSeries.has('final')}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="won"
-                    name="Victoires"
-                    stroke={COLORS.won}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    hide={hiddenSeries.has('won')}
-                  />
-                </LineChart>
-              )}
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: '#9ca3af', fontSize: 11 }}
+                  interval={chartData.length > 8 ? 'preserveStartEnd' : 0}
+                  angle={chartData.length > 5 ? -25 : 0}
+                  textAnchor={chartData.length > 5 ? 'end' : 'middle'}
+                  height={chartData.length > 5 ? 60 : 30}
+                />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ color: '#e8f0eb', fontSize: 12, cursor: 'pointer' }}
+                  onClick={handleLegendClick}
+                  formatter={legendFormatter}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="played"
+                  name="Parties jouées"
+                  stroke={COLORS.played}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  hide={hiddenSeries.has('played')}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="final"
+                  name="Finales"
+                  stroke={COLORS.final}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  hide={hiddenSeries.has('final')}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="won"
+                  name="Victoires"
+                  stroke={COLORS.won}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  hide={hiddenSeries.has('won')}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </div>
 

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { get, put } from '@vercel/blob'
-import { createHistoricalSeed, normalizeData, type PokerData } from './lib/data.js'
+import { createEmptyData, normalizeData, type PokerData } from './lib/data.js'
 
 const BLOB_PATH = 'poker-tracker.json'
 const BLOB_ACCESS = 'private' as const
@@ -28,9 +28,9 @@ async function readBlobData(): Promise<PokerData> {
   const result = await get(BLOB_PATH, { access: BLOB_ACCESS, ...blobAuth() })
 
   if (!result?.stream) {
-    const seed = createHistoricalSeed()
-    await writeBlobData(seed)
-    return seed
+    const empty = createEmptyData()
+    await writeBlobData(empty)
+    return empty
   }
 
   const text = await new Response(result.stream).text()
