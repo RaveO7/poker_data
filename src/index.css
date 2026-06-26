@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-felt: #0d4a2e;
+  --color-felt-light: #156b42;
+  --color-felt-dark: #082e1c;
+  --color-gold: #d4a843;
+  --color-gold-light: #f0c96b;
+  --color-chip-red: #c0392b;
+  --color-chip-blue: #2980b9;
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: linear-gradient(160deg, var(--color-felt-dark) 0%, #0a1a12 50%, #050f0a 100%);
+  color: #e8f0eb;
+  font-family: var(--font-sans);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
