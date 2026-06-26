@@ -24,4 +24,7 @@ export default defineConfig({
       ignored: ['**/data/**'],
     },
   },
+  build: {
+    chunkSizeWarningLimit: 700,
+  },
 })

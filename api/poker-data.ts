@@ -14,13 +14,11 @@ function getBlobToken(): string | undefined {
   return tokenKey ? process.env[tokenKey] : undefined
 }
 
-function blobOptions() {
-  const token = getBlobToken()
-  return token ? { token } : {}
-}
-
 async function readBlobData(): Promise<PokerData> {
-  const { blobs } = await list({ prefix: BLOB_PATH, limit: 1, ...blobOptions() })
+  const token = getBlobToken()
+  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN manquant')
+
+  const { blobs } = await list({ prefix: BLOB_PATH, limit: 1, token })
 
   if (blobs.length === 0) {
     const seed = createHistoricalSeed()
@@ -35,13 +33,15 @@ async function readBlobData(): Promise<PokerData> {
 }
 
 async function writeBlobData(data: unknown): Promise<PokerData> {
+  const token = getBlobToken()
+  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN manquant')
+
   const normalized = normalizeData(data as Partial<PokerData>)
   await put(BLOB_PATH, JSON.stringify(normalized, null, 2), {
     access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
-    allowOverwrite: true,
-    ...blobOptions(),
+    token,
   })
   return normalized
 }
