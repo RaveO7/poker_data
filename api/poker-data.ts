@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { list, put } from '@vercel/blob'
+import { get, put } from '@vercel/blob'
 import { createHistoricalSeed, normalizeData, type PokerData } from './lib/data.js'
 
 const BLOB_PATH = 'poker-tracker.json'
+const BLOB_ACCESS = 'private' as const
 
 function getBlobToken(): string | undefined {
   if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN
@@ -14,34 +15,36 @@ function getBlobToken(): string | undefined {
   return tokenKey ? process.env[tokenKey] : undefined
 }
 
-async function readBlobData(): Promise<PokerData> {
+function isBlobConfigured(): boolean {
+  return Boolean(getBlobToken() || process.env.BLOB_STORE_ID)
+}
+
+function blobAuth() {
   const token = getBlobToken()
-  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN manquant')
+  return token ? { token } : {}
+}
 
-  const { blobs } = await list({ prefix: BLOB_PATH, limit: 1, token })
+async function readBlobData(): Promise<PokerData> {
+  const result = await get(BLOB_PATH, { access: BLOB_ACCESS, ...blobAuth() })
 
-  if (blobs.length === 0) {
+  if (!result?.stream) {
     const seed = createHistoricalSeed()
     await writeBlobData(seed)
     return seed
   }
 
-  const blob = blobs[0]
-  const response = await fetch(blob.downloadUrl ?? blob.url)
-  if (!response.ok) throw new Error('Impossible de lire les données cloud')
-  return normalizeData((await response.json()) as Partial<PokerData>)
+  const text = await new Response(result.stream).text()
+  return normalizeData(JSON.parse(text) as Partial<PokerData>)
 }
 
 async function writeBlobData(data: unknown): Promise<PokerData> {
-  const token = getBlobToken()
-  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN manquant')
-
   const normalized = normalizeData(data as Partial<PokerData>)
   await put(BLOB_PATH, JSON.stringify(normalized, null, 2), {
-    access: 'public',
+    access: BLOB_ACCESS,
     contentType: 'application/json',
     addRandomSuffix: false,
-    token,
+    allowOverwrite: true,
+    ...blobAuth(),
   })
   return normalized
 }
@@ -49,11 +52,10 @@ async function writeBlobData(data: unknown): Promise<PokerData> {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json')
 
-  const token = getBlobToken()
-  if (!token) {
+  if (!isBlobConfigured()) {
     return res.status(503).json({
       error:
-        'BLOB_READ_WRITE_TOKEN manquant. Dans Vercel : Storage → votre Blob → Connect to Project → poker_data, puis Redeploy.',
+        'Blob non lié au projet. Storage → poker-data → Connect to Project → poker_data, puis Redeploy.',
     })
   }
 
