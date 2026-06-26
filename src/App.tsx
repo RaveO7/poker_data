@@ -40,8 +40,17 @@ function App() {
       <div className="flex min-h-svh flex-col items-center justify-center gap-4 px-4 text-center">
         <p className="text-red-400">{error ?? 'Impossible de charger les données.'}</p>
         <p className="text-sm text-white/50">
-          Lancez le serveur avec <code className="text-gold-light">npm run dev</code> puis
-          vérifiez le fichier <code className="text-gold-light">{DATA_FILE_PATH}</code>
+          {import.meta.env.PROD ? (
+            <>
+              Vérifiez que le Blob Store est <strong>lié au projet</strong> sur Vercel (Storage →
+              Connect to Project), puis faites un <strong>Redeploy</strong>.
+            </>
+          ) : (
+            <>
+              Lancez <code className="text-gold-light">npm run dev</code> et vérifiez{' '}
+              <code className="text-gold-light">{DATA_FILE_PATH}</code>
+            </>
+          )}
         </p>
         <button
           type="button"

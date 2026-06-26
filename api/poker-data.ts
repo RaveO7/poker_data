@@ -4,12 +4,23 @@ import { createHistoricalSeed, normalizeData, type PokerData } from './lib/data.
 
 const BLOB_PATH = 'poker-tracker.json'
 
-function blobConfigured(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+function getBlobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN
+
+  const tokenKey = Object.keys(process.env).find(
+    (key) => key.endsWith('_READ_WRITE_TOKEN') && process.env[key],
+  )
+
+  return tokenKey ? process.env[tokenKey] : undefined
+}
+
+function blobOptions() {
+  const token = getBlobToken()
+  return token ? { token } : {}
 }
 
 async function readBlobData(): Promise<PokerData> {
-  const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 })
+  const { blobs } = await list({ prefix: BLOB_PATH, limit: 1, ...blobOptions() })
 
   if (blobs.length === 0) {
     const seed = createHistoricalSeed()
@@ -30,6 +41,7 @@ async function writeBlobData(data: unknown): Promise<PokerData> {
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
+    ...blobOptions(),
   })
   return normalized
 }
@@ -37,10 +49,11 @@ async function writeBlobData(data: unknown): Promise<PokerData> {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json')
 
-  if (!blobConfigured()) {
+  const token = getBlobToken()
+  if (!token) {
     return res.status(503).json({
       error:
-        'Vercel Blob non configuré. Créez un Blob Store dans le dashboard Vercel et liez-le au projet.',
+        'BLOB_READ_WRITE_TOKEN manquant. Dans Vercel : Storage → votre Blob → Connect to Project → poker_data, puis Redeploy.',
     })
   }
 
