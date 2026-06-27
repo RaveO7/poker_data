@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PokerData, Settings, SpinEventType } from '../types'
+import type { PokerData, Session, Settings, SpinEventType } from '../types'
 import { clearAllData, importData, loadData, persistData } from '../lib/storage'
 import { todayKey } from '../lib/date'
 
@@ -104,6 +104,23 @@ export function usePokerStore() {
     }))
   }, [update])
 
+  const updateSession = useCallback(
+    (id: string, updates: Pick<Session, 'date' | 'startTime' | 'endTime'>) => {
+      update((prev) => ({
+        ...prev,
+        sessions: prev.sessions.map((s) => {
+          if (s.id !== id) return s
+          const next: Session = { ...s, ...updates }
+          if (updates.startTime && !updates.date) {
+            next.date = updates.startTime.slice(0, 10)
+          }
+          return next
+        }),
+      }))
+    },
+    [update],
+  )
+
   const addSpin = useCallback(
     (type: SpinEventType) => {
       update((prev) => {
@@ -202,6 +219,7 @@ export function usePokerStore() {
     refreshData,
     startSession,
     endSession,
+    updateSession,
     addSpin,
     startTournament,
     finishTournament,

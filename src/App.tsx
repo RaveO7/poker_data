@@ -19,6 +19,7 @@ function App() {
     refreshData,
     startSession,
     endSession,
+    updateSession,
     addSpin,
     startTournament,
     finishTournament,
@@ -97,7 +98,7 @@ function App() {
         </div>
 
         <DailyHistory data={data} />
-        <SessionHistory data={data} />
+        <SessionHistory data={data} onUpdateSession={updateSession} />
         <SettingsPanel
           data={data}
           onUpdate={updateSettings}
