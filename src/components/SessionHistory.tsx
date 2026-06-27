@@ -12,16 +12,19 @@ import {
   filterSessions,
   type HistoryFilterState,
 } from '../lib/historyFilters'
+import { computeSessionStats } from '../lib/stats'
 import type { Session } from '../types'
 import type { PokerData } from '../types'
+import type { SessionSpinCounts } from '../lib/stats'
 import { Card } from './ui'
 
 interface SessionHistoryProps {
   data: PokerData
   filters: HistoryFilterState
-  onUpdateSession: (
+  onSaveSessionEdits: (
     id: string,
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+    spinCounts: SessionSpinCounts,
   ) => void
 }
 
@@ -29,6 +32,9 @@ interface EditForm {
   startTime: string
   endTime: string
   note: string
+  spinsPlayed: string
+  spinsFinal: string
+  spinsWon: string
 }
 
 function sessionDurationPreview(session: Session, startTime: string, endTime: string): number {
@@ -41,25 +47,49 @@ function sessionDurationPreview(session: Session, startTime: string, endTime: st
   return Math.max(0, end - start)
 }
 
-export function SessionHistory({ data, filters, onUpdateSession }: SessionHistoryProps) {
+export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHistoryProps) {
   const sessions = filterSessions(data, filters)
     .map((session) => computeSessionStatsFiltered(data, session, filters))
     .sort((a, b) => b.session.startTime.localeCompare(a.session.startTime))
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<EditForm>({ startTime: '', endTime: '', note: '' })
+  const [form, setForm] = useState<EditForm>({
+    startTime: '',
+    endTime: '',
+    note: '',
+    spinsPlayed: '0',
+    spinsFinal: '0',
+    spinsWon: '0',
+  })
 
-  const startEdit = (session: Session) => {
-    setEditingId(session.id)
+  const startEdit = (stats: (typeof sessions)[number]) => {
+    const full = computeSessionStats(data, stats.session)
+    setEditingId(stats.session.id)
     setForm({
-      startTime: toDatetimeLocalValue(session.startTime),
-      endTime: session.endTime ? toDatetimeLocalValue(session.endTime) : '',
-      note: session.note ?? '',
+      startTime: toDatetimeLocalValue(stats.session.startTime),
+      endTime: stats.session.endTime ? toDatetimeLocalValue(stats.session.endTime) : '',
+      note: stats.session.note ?? '',
+      spinsPlayed: String(full.spinsPlayed),
+      spinsFinal: String(full.spinsFinal),
+      spinsWon: String(full.spinsWon),
     })
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setForm({ startTime: '', endTime: '', note: '' })
+    setForm({
+      startTime: '',
+      endTime: '',
+      note: '',
+      spinsPlayed: '0',
+      spinsFinal: '0',
+      spinsWon: '0',
+    })
+  }
+
+  const parseCount = (value: string): number | null => {
+    const n = parseInt(value, 10)
+    if (Number.isNaN(n) || n < 0) return null
+    return n
   }
 
   const saveEdit = (session: Session) => {
@@ -71,12 +101,24 @@ export function SessionHistory({ data, filters, onUpdateSession }: SessionHistor
       return
     }
 
-    onUpdateSession(session.id, {
-      date: startIso.slice(0, 10),
-      startTime: startIso,
-      note: form.note.trim() || undefined,
-      ...(endIso ? { endTime: endIso } : {}),
-    })
+    const played = parseCount(form.spinsPlayed)
+    const final = parseCount(form.spinsFinal)
+    const won = parseCount(form.spinsWon)
+    if (played == null || final == null || won == null) {
+      alert('Les nombres de spins doivent être des entiers ≥ 0.')
+      return
+    }
+
+    onSaveSessionEdits(
+      session.id,
+      {
+        date: startIso.slice(0, 10),
+        startTime: startIso,
+        note: form.note.trim() || undefined,
+        ...(endIso ? { endTime: endIso } : {}),
+      },
+      { played, final, won },
+    )
     cancelEdit()
   }
 
@@ -129,6 +171,41 @@ export function SessionHistory({ data, filters, onUpdateSession }: SessionHistor
                   <p className="text-sm text-white/50">
                     Durée : {formatDuration(previewMs)}
                   </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <label className="block text-sm">
+                      <span className="text-white/60">Parties</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.spinsPlayed}
+                        onChange={(e) => setForm((f) => ({ ...f, spinsPlayed: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      <span className="text-white/60">Finales</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.spinsFinal}
+                        onChange={(e) => setForm((f) => ({ ...f, spinsFinal: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      <span className="text-white/60">Victoires</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.spinsWon}
+                        onChange={(e) => setForm((f) => ({ ...f, spinsWon: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+                      />
+                    </label>
+                  </div>
                   <label className="block text-sm">
                     <span className="text-white/60">Note (optionnel)</span>
                     <input
@@ -194,9 +271,9 @@ export function SessionHistory({ data, filters, onUpdateSession }: SessionHistor
                     {!isHistorical && (
                       <button
                         type="button"
-                        onClick={() => startEdit(s.session)}
+                        onClick={() => startEdit(s)}
                         className="rounded-lg bg-white/10 px-3 py-1.5 text-xs hover:bg-white/20"
-                        title="Modifier les horaires"
+                        title="Modifier la session"
                       >
                         Modifier
                       </button>

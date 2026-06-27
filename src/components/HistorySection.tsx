@@ -5,19 +5,21 @@ import {
   type HistoryFilterState,
 } from '../lib/historyFilters'
 import type { PokerData, Session } from '../types'
+import type { SessionSpinCounts } from '../lib/stats'
 import { DailyHistory } from './DailyHistory'
 import { HistoryFilters } from './HistoryFilters'
 import { SessionHistory } from './SessionHistory'
 
 interface HistorySectionProps {
   data: PokerData
-  onUpdateSession: (
+  onSaveSessionEdits: (
     id: string,
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+    spinCounts: SessionSpinCounts,
   ) => void
 }
 
-export function HistorySection({ data, onUpdateSession }: HistorySectionProps) {
+export function HistorySection({ data, onSaveSessionEdits }: HistorySectionProps) {
   const [filters, setFilters] = useState<HistoryFilterState>(DEFAULT_HISTORY_FILTERS)
   const availableStakes = getAvailableStakes(data)
 
@@ -28,7 +30,7 @@ export function HistorySection({ data, onUpdateSession }: HistorySectionProps) {
         <HistoryFilters filters={filters} availableStakes={availableStakes} onChange={setFilters} />
       </div>
       <DailyHistory data={data} filters={filters} />
-      <SessionHistory data={data} filters={filters} onUpdateSession={onUpdateSession} />
+      <SessionHistory data={data} filters={filters} onSaveSessionEdits={onSaveSessionEdits} />
     </div>
   )
 }

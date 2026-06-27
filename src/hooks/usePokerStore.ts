@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PokerData, Session, Settings, SpinEventType } from '../types'
 import { clearAllData, importData, loadData, persistData } from '../lib/storage'
 import { todayKey } from '../lib/date'
+import { rebuildSessionSpins, type SessionSpinCounts } from '../lib/stats'
 
 function createId(): string {
   return crypto.randomUUID()
@@ -117,6 +118,31 @@ export function usePokerStore() {
           return next
         }),
       }))
+    },
+    [update],
+  )
+
+  const saveSessionEdits = useCallback(
+    (
+      id: string,
+      sessionUpdates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+      spinCounts: SessionSpinCounts,
+    ) => {
+      update((prev) => {
+        const sessions = prev.sessions.map((s) => {
+          if (s.id !== id) return s
+          const next: Session = { ...s, ...sessionUpdates }
+          if (sessionUpdates.startTime && !sessionUpdates.date) {
+            next.date = sessionUpdates.startTime.slice(0, 10)
+          }
+          return next
+        })
+        const withSession = { ...prev, sessions }
+        return {
+          ...withSession,
+          spins: rebuildSessionSpins(withSession, id, spinCounts),
+        }
+      })
     },
     [update],
   )
@@ -267,6 +293,7 @@ export function usePokerStore() {
     startSession,
     endSession,
     updateSession,
+    saveSessionEdits,
     undoLastAction,
     addSpin,
     startTournament,

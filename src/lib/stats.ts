@@ -143,3 +143,75 @@ export function getGlobalStats(data: PokerData) {
     winRate: played > 0 ? (won / played) * 100 : 0,
   }
 }
+
+export interface SessionSpinCounts {
+  played: number
+  final: number
+  won: number
+}
+
+export function rebuildSessionSpins(
+  data: PokerData,
+  sessionId: string,
+  counts: SessionSpinCounts,
+): SpinEvent[] {
+  const session = data.sessions.find((s) => s.id === sessionId)
+  if (!session) return data.spins
+
+  const existing = data.spins.filter((s) => s.sessionId === sessionId)
+  const otherSpins = data.spins.filter((s) => s.sessionId !== sessionId)
+
+  const stake =
+    existing.length > 0 ? getSpinStake(existing[0]) : data.settings.selectedSpinStake
+  const multiplier =
+    existing.find((s) => s.type === 'win')?.multiplier ?? data.settings.selectedSpinMultiplier
+
+  const startMs = new Date(session.startTime).getTime()
+  const endMs = session.endTime ? new Date(session.endTime).getTime() : Date.now()
+  const date = session.date
+  const total = counts.played + counts.final + counts.won
+  let idx = 0
+
+  const timestamp = (): string => {
+    const ms =
+      total <= 1 ? startMs : startMs + Math.floor((idx / total) * Math.max(0, endMs - startMs))
+    idx += 1
+    return new Date(ms).toISOString()
+  }
+
+  const newSpins: SpinEvent[] = []
+  for (let i = 0; i < counts.played; i++) {
+    newSpins.push({
+      id: crypto.randomUUID(),
+      sessionId,
+      date,
+      timestamp: timestamp(),
+      type: 'played',
+      stake,
+    })
+  }
+  for (let i = 0; i < counts.final; i++) {
+    newSpins.push({
+      id: crypto.randomUUID(),
+      sessionId,
+      date,
+      timestamp: timestamp(),
+      type: 'final',
+      stake,
+    })
+  }
+  for (let i = 0; i < counts.won; i++) {
+    newSpins.push({
+      id: crypto.randomUUID(),
+      sessionId,
+      date,
+      timestamp: timestamp(),
+      type: 'win',
+      stake,
+      multiplier,
+    })
+  }
+
+  newSpins.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+  return [...otherSpins, ...newSpins]
+}
