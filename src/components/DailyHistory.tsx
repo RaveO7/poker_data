@@ -1,20 +1,21 @@
 import { formatDate, formatDuration, formatMoney } from '../lib/date'
 import { formatProfitPerHour, profitPerHour } from '../lib/analytics'
-import { getAllDayStats } from '../lib/stats'
+import { getFilteredDayStats, type HistoryFilterState } from '../lib/historyFilters'
 import type { PokerData } from '../types'
 import { Card } from './ui'
 
 interface DailyHistoryProps {
   data: PokerData
+  filters: HistoryFilterState
 }
 
-export function DailyHistory({ data }: DailyHistoryProps) {
-  const days = getAllDayStats(data)
+export function DailyHistory({ data, filters }: DailyHistoryProps) {
+  const days = getFilteredDayStats(data, filters)
 
   if (days.length === 0) {
     return (
       <Card title="📅 Historique par jour">
-        <p className="text-center text-white/50">Aucune donnée pour le moment.</p>
+        <p className="text-center text-white/50">Aucune donnée ne correspond aux filtres.</p>
       </Card>
     )
   }

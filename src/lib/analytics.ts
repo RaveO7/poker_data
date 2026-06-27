@@ -590,6 +590,202 @@ export function hasMonthlyGoals(settings: Settings): boolean {
   return (
     (settings.monthlyProfitGoal ?? 0) > 0 ||
     (settings.monthlyLossLimit ?? 0) > 0 ||
-    (settings.maxSpinsPerDay ?? 0) > 0
+    (settings.maxSpinsPerDay ?? 0) > 0 ||
+    (settings.bankrollGoal ?? 0) > 0
   )
+}
+
+export function getMonthComparison(data: PokerData, date = new Date()): PeriodComparison {
+  const thisMonthStart = new Date(date.getFullYear(), date.getMonth(), 1)
+  const thisMonthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+
+  const lastMonthStart = new Date(date.getFullYear(), date.getMonth() - 1, 1)
+  const lastMonthEnd = new Date(date.getFullYear(), date.getMonth(), 0)
+
+  const current = snapshotForDateRange(data, thisMonthStart, thisMonthEnd)
+  const previous = snapshotForDateRange(data, lastMonthStart, lastMonthEnd)
+
+  const fmt = (d: Date) => `${MONTH_NAMES_FR[d.getMonth()]} ${d.getFullYear()}`
+
+  return {
+    currentLabel: `Ce mois (${fmt(thisMonthStart)})`,
+    previousLabel: `Mois préc. (${fmt(lastMonthStart)})`,
+    current,
+    previous,
+    profitDelta: current.profit - previous.profit,
+  }
+}
+
+export interface HourlyStats {
+  hour: number
+  label: string
+  played: number
+  won: number
+  profit: number
+  winRate: number
+}
+
+export function getHourlyStats(data: PokerData): HourlyStats[] {
+  const buckets = new Map<number, SpinEvent[]>()
+  for (const spin of data.spins) {
+    const hour = new Date(spin.timestamp).getHours()
+    const group = buckets.get(hour) ?? []
+    group.push(spin)
+    buckets.set(hour, group)
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([hour, spins]) => {
+      const played = spins.filter((s) => s.type === 'played').length
+      const won = spins.filter((s) => s.type === 'win').length
+      const profit = computeSpinProfitFromEvents(spins, data.settings)
+      return {
+        hour,
+        label: `${String(hour).padStart(2, '0')}h–${String((hour + 1) % 24).padStart(2, '0')}h`,
+        played,
+        won,
+        profit,
+        winRate: played > 0 ? (won / played) * 100 : 0,
+      }
+    })
+    .filter((h) => h.played > 0)
+}
+
+export interface SessionDurationInsight {
+  sessionId: string
+  date: string
+  durationMin: number
+  profit: number
+  profitPerHour: number | null
+  note?: string
+}
+
+export interface DurationCorrelationSummary {
+  sessions: SessionDurationInsight[]
+  bestProfitPerHour: SessionDurationInsight | null
+  avgDurationMin: number
+  longSessionsNegative: number
+}
+
+export function getSessionDurationInsights(data: PokerData): DurationCorrelationSummary {
+  const sessions = data.sessions
+    .filter((s) => !s.isActive && s.endTime)
+    .map((session) => {
+      const stats = computeSessionStats(data, session)
+      const durationMin = stats.durationMs / 60_000
+      return {
+        sessionId: session.id,
+        date: session.date,
+        durationMin,
+        profit: stats.profit,
+        profitPerHour: profitPerHour(stats.profit, stats.durationMs),
+        note: session.note,
+      }
+    })
+    .filter((s) => s.durationMin >= 5)
+
+  const withPph = sessions.filter((s) => s.profitPerHour != null)
+  const bestProfitPerHour =
+    withPph.length > 0
+      ? withPph.reduce((best, s) => ((s.profitPerHour ?? 0) > (best.profitPerHour ?? 0) ? s : best))
+      : null
+
+  const avgDurationMin =
+    sessions.length > 0 ? sessions.reduce((sum, s) => sum + s.durationMin, 0) / sessions.length : 0
+
+  const longSessionsNegative = sessions.filter((s) => s.durationMin >= 90 && s.profit < 0).length
+
+  return { sessions, bestProfitPerHour, avgDurationMin, longSessionsNegative }
+}
+
+export function getTournamentAbi(data: PokerData, monthOnly = false): number | null {
+  const monthKey = currentMonthKey()
+  const tournaments = data.tournaments.filter(
+    (t) => !monthOnly || t.date.startsWith(monthKey),
+  )
+  if (tournaments.length === 0) return null
+  return tournaments.reduce((sum, t) => sum + t.buyIn, 0) / tournaments.length
+}
+
+export interface BankrollGoalProgress {
+  current: number
+  goal: number
+  percent: number
+  remaining: number
+  reached: boolean
+}
+
+export function getBankrollGoalProgress(data: PokerData): BankrollGoalProgress | null {
+  const goal = data.settings.bankrollGoal ?? 0
+  if (goal <= 0) return null
+  const current = getCurrentBankroll(data)
+  const percent = Math.min(100, (current / goal) * 100)
+  return {
+    current,
+    goal,
+    percent,
+    remaining: Math.max(0, goal - current),
+    reached: current >= goal,
+  }
+}
+
+export interface MonthSimulation {
+  monthLabel: string
+  monthProfit: number
+  profitGoal: number
+  remaining: number
+  playedThisMonth: number
+  profitPerSpin: number | null
+  spinsNeeded: number | null
+  daysLeft: number
+  message: string
+}
+
+export function getMonthSimulation(data: PokerData, date = new Date()): MonthSimulation | null {
+  const profitGoal = data.settings.monthlyProfitGoal ?? 0
+  if (profitGoal <= 0) return null
+
+  const monthKey = currentMonthKey(date)
+  const monthSpins = data.spins.filter((s) => s.date.startsWith(monthKey))
+  const monthTournaments = data.tournaments.filter((t) => t.date.startsWith(monthKey))
+  const monthProfit =
+    computeSpinProfitFromEvents(monthSpins, data.settings) +
+    computeTournamentProfit(monthTournaments)
+
+  const played = monthSpins.filter((s) => s.type === 'played').length
+  const remaining = profitGoal - monthProfit
+
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  const daysLeft = lastDay - date.getDate()
+
+  let profitPerSpin: number | null = null
+  let spinsNeeded: number | null = null
+  let message: string
+
+  if (remaining <= 0) {
+    message = 'Objectif de profit mensuel déjà atteint.'
+  } else if (played < 5) {
+    message = `Pas assez de spins ce mois (${played}) pour estimer le rythme.`
+  } else {
+    profitPerSpin = monthProfit / played
+    if (profitPerSpin <= 0) {
+      message = `Rythme actuel négatif (${profitPerSpin.toFixed(2)} €/spin) — impossible d'estimer.`
+    } else {
+      spinsNeeded = Math.ceil(remaining / profitPerSpin)
+      message = `Au rythme actuel (+${profitPerSpin.toFixed(2)} €/spin), environ ${spinsNeeded} spins restants pour +${remaining.toFixed(0)} €.`
+    }
+  }
+
+  return {
+    monthLabel: formatMonthLabel(date),
+    monthProfit,
+    profitGoal,
+    remaining,
+    playedThisMonth: played,
+    profitPerSpin,
+    spinsNeeded,
+    daysLeft,
+    message,
+  }
 }

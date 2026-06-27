@@ -22,6 +22,8 @@ const DEFAULT_SETTINGS = {
   monthlyProfitGoal: 0,
   monthlyLossLimit: 0,
   maxSpinsPerDay: 0,
+  bankrollGoal: 0,
+  customNoteTags: [],
 }
 
 function createSpinEvents(count, type, sessionId, date) {

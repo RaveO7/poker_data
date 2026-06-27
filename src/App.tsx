@@ -2,10 +2,9 @@ import { GoalsPanel } from './components/GoalsPanel'
 import { BankrollChart } from './components/BankrollChart'
 import { ChartsPanel } from './components/ChartsPanel'
 import { GlobalStats } from './components/GlobalStats'
-import { DailyHistory } from './components/DailyHistory'
+import { HistorySection } from './components/HistorySection'
 import { InsightsPanel } from './components/InsightsPanel'
 import { SessionBar } from './components/SessionBar'
-import { SessionHistory } from './components/SessionHistory'
 import { SettingsPanel } from './components/SettingsPanel'
 import { SpinTracker } from './components/SpinTracker'
 import { StatsOverview } from './components/StatsOverview'
@@ -112,8 +111,7 @@ function App() {
         <StatsOverview data={data} />
         <GoalsPanel data={data} />
 
-        <DailyHistory data={data} />
-        <SessionHistory data={data} onUpdateSession={updateSession} />
+        <HistorySection data={data} onUpdateSession={updateSession} />
         <SettingsPanel
           data={data}
           onUpdate={updateSettings}

@@ -6,13 +6,19 @@ import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
 } from '../lib/date'
-import { getRecentSessions } from '../lib/stats'
+import { formatProfitPerHour, profitPerHour } from '../lib/analytics'
+import {
+  computeSessionStatsFiltered,
+  filterSessions,
+  type HistoryFilterState,
+} from '../lib/historyFilters'
 import type { Session } from '../types'
 import type { PokerData } from '../types'
 import { Card } from './ui'
 
 interface SessionHistoryProps {
   data: PokerData
+  filters: HistoryFilterState
   onUpdateSession: (
     id: string,
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
@@ -35,8 +41,10 @@ function sessionDurationPreview(session: Session, startTime: string, endTime: st
   return Math.max(0, end - start)
 }
 
-export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
-  const sessions = getRecentSessions(data, 8)
+export function SessionHistory({ data, filters, onUpdateSession }: SessionHistoryProps) {
+  const sessions = filterSessions(data, filters)
+    .map((session) => computeSessionStatsFiltered(data, session, filters))
+    .sort((a, b) => b.session.startTime.localeCompare(a.session.startTime))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<EditForm>({ startTime: '', endTime: '', note: '' })
 
@@ -75,7 +83,7 @@ export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
   if (sessions.length === 0) {
     return (
       <Card title="🕐 Historique des sessions">
-        <p className="text-center text-white/50">Aucune session enregistrée.</p>
+        <p className="text-center text-white/50">Aucune session ne correspond aux filtres.</p>
       </Card>
     )
   }
@@ -162,6 +170,11 @@ export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
                     <p className="text-sm text-white/50">
                       {s.spinsPlayed} spins · {s.tournamentsPlayed} tournois ·{' '}
                       {formatDuration(s.durationMs)}
+                      {formatProfitPerHour(profitPerHour(s.profit, s.durationMs)) !== '—' && (
+                        <span className="ml-1 text-sky-400/80">
+                          · {formatProfitPerHour(profitPerHour(s.profit, s.durationMs))}
+                        </span>
+                      )}
                       {s.session.note && (
                         <span className="ml-1 text-white/40">· {s.session.note}</span>
                       )}

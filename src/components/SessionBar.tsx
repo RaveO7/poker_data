@@ -9,7 +9,7 @@ import {
   profitPerHour,
 } from '../lib/analytics'
 import { computeSessionStats, getActiveSession } from '../lib/stats'
-import { SESSION_NOTE_PRESETS, type PokerData } from '../types'
+import { getAllNoteTags, type PokerData } from '../types'
 import { ActionButton, StatBox } from './ui'
 
 interface SessionBarProps {
@@ -40,6 +40,7 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: Se
     activeSessionEmpty || data.spins.length > 0 || data.tournaments.length > 0
 
   const activeNote = active?.note?.trim().toLowerCase()
+  const noteTags = getAllNoteTags(data.settings)
 
   return (
     <div className="rounded-2xl border border-gold/30 bg-gradient-to-r from-felt to-felt-light p-5">
@@ -85,13 +86,13 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: Se
         <div className="mt-3">
           <p className="mb-2 text-xs text-white/50">Contexte de session</p>
           <div className="flex flex-wrap gap-2">
-            {SESSION_NOTE_PRESETS.map((preset) => (
+            {noteTags.map((preset) => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => onSetNote(active.id, preset)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
-                  activeNote === preset
+                  activeNote === preset.toLowerCase()
                     ? 'bg-gold text-felt-dark ring-2 ring-gold-light'
                     : 'bg-white/10 text-white/80 hover:bg-white/20'
                 }`}

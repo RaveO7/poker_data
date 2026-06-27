@@ -23,6 +23,8 @@ function migrateSettings(raw = {}) {
     monthlyProfitGoal: raw.monthlyProfitGoal ?? 0,
     monthlyLossLimit: raw.monthlyLossLimit ?? 0,
     maxSpinsPerDay: raw.maxSpinsPerDay ?? 0,
+    bankrollGoal: raw.bankrollGoal ?? 0,
+    customNoteTags: Array.isArray(raw.customNoteTags) ? raw.customNoteTags : [],
   }
 }
 

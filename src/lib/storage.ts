@@ -20,6 +20,8 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     monthlyProfitGoal?: number
     monthlyLossLimit?: number
     maxSpinsPerDay?: number
+    bankrollGoal?: number
+    customNoteTags?: string[]
   }
 
   return {
@@ -40,6 +42,10 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     monthlyProfitGoal: legacy.monthlyProfitGoal ?? DEFAULT_DATA.settings.monthlyProfitGoal,
     monthlyLossLimit: legacy.monthlyLossLimit ?? DEFAULT_DATA.settings.monthlyLossLimit,
     maxSpinsPerDay: legacy.maxSpinsPerDay ?? DEFAULT_DATA.settings.maxSpinsPerDay,
+    bankrollGoal: legacy.bankrollGoal ?? DEFAULT_DATA.settings.bankrollGoal,
+    customNoteTags: Array.isArray(legacy.customNoteTags)
+      ? legacy.customNoteTags
+      : DEFAULT_DATA.settings.customNoteTags,
   }
 }
 

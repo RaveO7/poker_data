@@ -79,6 +79,22 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
               value={data.settings.startingBankroll}
               onChange={(v) => onUpdate({ startingBankroll: v })}
             />
+            <GoalInput
+              label="Objectif bankroll (€)"
+              value={data.settings.bankrollGoal}
+              onChange={(v) => onUpdate({ bankrollGoal: v })}
+            />
+          </div>
+
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-3 text-sm font-medium text-white/70">Tags de notes personnalisés</p>
+            <p className="mb-3 text-xs text-white/40">
+              En plus des presets (focus, fatigué, tilt, normal). Un tag par ligne.
+            </p>
+            <CustomTagsEditor
+              tags={data.settings.customNoteTags ?? []}
+              onChange={(customNoteTags) => onUpdate({ customNoteTags })}
+            />
           </div>
 
           <div className="border-t border-white/10 pt-4">
@@ -170,6 +186,65 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
         </div>
       )}
     </Card>
+  )
+}
+
+function CustomTagsEditor({
+  tags,
+  onChange,
+}: {
+  tags: string[]
+  onChange: (tags: string[]) => void
+}) {
+  const [draft, setDraft] = useState('')
+
+  const addTag = () => {
+    const tag = draft.trim().toLowerCase()
+    if (!tag || tags.includes(tag)) return
+    onChange([...tags, tag])
+    setDraft('')
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+          placeholder="ex: grind, weekend…"
+          className="flex-1 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+        />
+        <button
+          type="button"
+          onClick={addTag}
+          className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-felt-dark hover:bg-gold-light"
+        >
+          Ajouter
+        </button>
+      </div>
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs capitalize"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => onChange(tags.filter((t) => t !== tag))}
+                className="text-white/50 hover:text-red-300"
+                aria-label={`Supprimer ${tag}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

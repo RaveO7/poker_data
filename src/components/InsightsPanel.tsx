@@ -3,10 +3,15 @@ import {
   formatProfitPerHour,
   formatSpinsPerHour,
   getGlobalPace,
+  getHourlyStats,
+  getMonthComparison,
+  getMonthSimulation,
   getMultiplierDistribution,
+  getSessionDurationInsights,
   getStatsByNote,
   getStatsByStake,
   getTodayPace,
+  getTournamentAbi,
   getTournamentAnalytics,
   getVarianceStats,
   getWeekComparison,
@@ -28,6 +33,21 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   const tournaments = getTournamentAnalytics(data)
   const variance = getVarianceStats(data)
   const week = getWeekComparison(data)
+  const month = getMonthComparison(data)
+  const hourly = getHourlyStats(data)
+  const durationInsights = getSessionDurationInsights(data)
+  const abiAll = getTournamentAbi(data, false)
+  const abiMonth = getTournamentAbi(data, true)
+  const simulation = getMonthSimulation(data)
+
+  const bestHour =
+    hourly.length > 0
+      ? hourly.reduce((best, h) => (h.profit > best.profit ? h : best))
+      : null
+  const bestWinRateHour =
+    hourly.length > 0
+      ? hourly.reduce((best, h) => (h.winRate > best.winRate && h.played >= 5 ? h : best))
+      : null
 
   const hasData =
     todayPace.spinsPlayed > 0 ||
@@ -129,6 +149,151 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
           </p>
         </section>
 
+        {/* Comparaison mois */}
+        {(month.current.played > 0 || month.previous.played > 0) && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Comparaison mensuelle</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ComparisonCard
+                label={month.currentLabel}
+                profit={month.current.profit}
+                played={month.current.played}
+                won={month.current.won}
+                pph={month.current.profitPerHour}
+              />
+              <ComparisonCard
+                label={month.previousLabel}
+                profit={month.previous.profit}
+                played={month.previous.played}
+                won={month.previous.won}
+                pph={month.previous.profitPerHour}
+              />
+            </div>
+            <p className="mt-2 text-center text-sm text-white/50">
+              Écart profit :{' '}
+              <span className={month.profitDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                {formatMoney(month.profitDelta)}
+              </span>
+            </p>
+          </section>
+        )}
+
+        {/* Créneaux horaires */}
+        {hourly.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Meilleur créneau horaire</h3>
+            <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              {bestHour && (
+                <div className="rounded-xl bg-black/25 px-4 py-3">
+                  <p className="text-xs text-white/50">Meilleur profit</p>
+                  <p className="mt-1 text-lg font-bold text-emerald-400">{bestHour.label}</p>
+                  <p className="text-sm text-white/50">
+                    {formatMoney(bestHour.profit)} · {bestHour.winRate.toFixed(0)}% win ({bestHour.played} spins)
+                  </p>
+                </div>
+              )}
+              {bestWinRateHour && bestWinRateHour.hour !== bestHour?.hour && (
+                <div className="rounded-xl bg-black/25 px-4 py-3">
+                  <p className="text-xs text-white/50">Meilleur win rate (≥5 spins)</p>
+                  <p className="mt-1 text-lg font-bold text-sky-400">{bestWinRateHour.label}</p>
+                  <p className="text-sm text-white/50">
+                    {bestWinRateHour.winRate.toFixed(0)}% · {formatMoney(bestWinRateHour.profit)}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-white/50">
+                    <th className="pb-2 pr-3 font-medium">Créneau</th>
+                    <th className="pb-2 pr-3 font-medium">Spins</th>
+                    <th className="pb-2 pr-3 font-medium">Win %</th>
+                    <th className="pb-2 font-medium">P&L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hourly.map((h) => (
+                    <tr key={h.hour} className="border-b border-white/5">
+                      <td className="py-2 pr-3 font-medium">{h.label}</td>
+                      <td className="py-2 pr-3 tabular-nums">{h.played}</td>
+                      <td className="py-2 pr-3 tabular-nums">{h.winRate.toFixed(1)}%</td>
+                      <td
+                        className={`py-2 tabular-nums font-semibold ${h.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                      >
+                        {formatMoney(h.profit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Durée vs €/h */}
+        {durationInsights.sessions.length >= 3 && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Sessions : durée vs €/h</h3>
+            <div className="mb-3 grid gap-3 sm:grid-cols-3">
+              <StatBox
+                label="Durée moyenne"
+                value={`${durationInsights.avgDurationMin.toFixed(0)} min`}
+              />
+              <StatBox
+                label="Sessions longues perdantes"
+                value={durationInsights.longSessionsNegative}
+                accent={durationInsights.longSessionsNegative > 0 ? 'red' : 'green'}
+              />
+              {durationInsights.bestProfitPerHour && (
+                <StatBox
+                  label="Meilleur €/h"
+                  value={formatProfitPerHour(durationInsights.bestProfitPerHour.profitPerHour)}
+                  accent="green"
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              {[...durationInsights.sessions]
+                .sort((a, b) => b.durationMin - a.durationMin)
+                .slice(0, 6)
+                .map((s) => (
+                  <div
+                    key={s.sessionId}
+                    className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2 text-sm"
+                  >
+                    <span className="text-white/70">
+                      {s.durationMin.toFixed(0)} min
+                      {s.note && <span className="ml-1 text-white/40">· {s.note}</span>}
+                    </span>
+                    <span className="flex gap-3 tabular-nums">
+                      <span className="text-sky-400">{formatProfitPerHour(s.profitPerHour)}</span>
+                      <span className={s.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        {formatMoney(s.profit)}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </section>
+        )}
+
+        {/* Simulation mois */}
+        {simulation && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Simulation objectif mensuel</h3>
+            <div className="rounded-xl bg-black/25 px-4 py-3">
+              <p className="text-sm text-white/70">{simulation.message}</p>
+              {simulation.spinsNeeded != null && (
+                <p className="mt-2 text-xs text-white/40">
+                  {simulation.playedThisMonth} spins joués · {simulation.daysLeft} jours restants · objectif{' '}
+                  {simulation.profitGoal} €
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Par ticket */}
         {byStake.length > 0 && (
           <section>
@@ -191,17 +356,27 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
         {tournaments.total > 0 && (
           <section>
             <h3 className="mb-3 text-sm font-semibold text-white/70">Statistiques tournois</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <StatBox label="ITM" value={`${tournaments.itmRate.toFixed(0)}%`} accent="green" />
               <StatBox
                 label="Place moy."
                 value={tournaments.avgPlace != null ? tournaments.avgPlace.toFixed(0) : '—'}
               />
               <StatBox
+                label="ABI global"
+                value={abiAll != null ? `${abiAll.toFixed(1)} €` : '—'}
+              />
+              <StatBox
+                label="ABI ce mois"
+                value={abiMonth != null ? `${abiMonth.toFixed(1)} €` : '—'}
+              />
+              <StatBox
                 label="ROI tournois"
                 value={tournaments.roi != null ? `${tournaments.roi.toFixed(0)}%` : '—'}
                 accent={tournaments.roi != null && tournaments.roi >= 0 ? 'green' : 'red'}
               />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-2">
               <StatBox
                 label="Profit tournois"
                 value={formatMoney(tournaments.profit)}

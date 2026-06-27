@@ -76,6 +76,10 @@ export interface Settings {
   monthlyProfitGoal: number
   monthlyLossLimit: number
   maxSpinsPerDay: number
+  /** Bankroll cible (0 = désactivé). */
+  bankrollGoal: number
+  /** Tags de notes personnalisés (en plus des presets). */
+  customNoteTags: string[]
 }
 
 export interface PokerData {
@@ -119,6 +123,8 @@ export const DEFAULT_SETTINGS: Settings = {
   monthlyProfitGoal: 0,
   monthlyLossLimit: 0,
   maxSpinsPerDay: 0,
+  bankrollGoal: 0,
+  customNoteTags: [],
 }
 
 export const DEFAULT_DATA: PokerData = {
@@ -129,3 +135,9 @@ export const DEFAULT_DATA: PokerData = {
 }
 
 export const HISTORICAL_SPIN_STAKE = 5
+
+export function getAllNoteTags(settings: Settings): string[] {
+  const custom = settings.customNoteTags ?? []
+  const presets = [...SESSION_NOTE_PRESETS]
+  return [...presets, ...custom.filter((t) => !presets.includes(t as (typeof presets)[number]))]
+}

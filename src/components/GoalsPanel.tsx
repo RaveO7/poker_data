@@ -1,4 +1,4 @@
-import { getMonthlyGoalsProgress, hasMonthlyGoals } from '../lib/analytics'
+import { getBankrollGoalProgress, getMonthlyGoalsProgress, hasMonthlyGoals } from '../lib/analytics'
 import { formatMoney } from '../lib/date'
 import type { PokerData } from '../types'
 import { Card } from './ui'
@@ -11,6 +11,7 @@ export function GoalsPanel({ data }: GoalsPanelProps) {
   if (!hasMonthlyGoals(data.settings)) return null
 
   const goals = getMonthlyGoalsProgress(data)
+  const bankroll = getBankrollGoalProgress(data)
 
   return (
     <Card title="🎯 Objectifs">
@@ -51,6 +52,17 @@ export function GoalsPanel({ data }: GoalsPanelProps) {
             variant="spins"
           />
         )}
+
+        {bankroll && (
+          <GoalProgress
+            label="Objectif bankroll"
+            currentLabel={formatMoney(bankroll.current)}
+            targetLabel={`${bankroll.goal} €`}
+            percent={bankroll.percent}
+            reached={bankroll.reached}
+            variant="profit"
+          />
+        )}
       </div>
 
       {(goals.lossLimitReached || goals.spinsLimitReached) && (
@@ -66,6 +78,12 @@ export function GoalsPanel({ data }: GoalsPanelProps) {
             </p>
           )}
         </div>
+      )}
+
+      {bankroll?.reached && (
+        <p className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-2 text-sm text-emerald-200">
+          Objectif bankroll atteint ({bankroll.goal} €) — bravo !
+        </p>
       )}
 
       {goals.profitGoalReached && (
