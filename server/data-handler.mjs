@@ -12,9 +12,14 @@ function migrateSettings(raw = {}) {
   return {
     selectedSpinStake: raw.selectedSpinStake ?? raw.spinBuyIn ?? 5,
     selectedTournamentStake: raw.selectedTournamentStake ?? raw.tournamentBuyIn ?? 5,
+    selectedSpinMultiplier: raw.selectedSpinMultiplier ?? raw.spinWinMultiplier ?? 3,
     spinWinMultiplier:
       raw.spinWinMultiplier ??
       (raw.spinWinGain && raw.spinBuyIn ? raw.spinWinGain / raw.spinBuyIn : 3),
+    sessionMaxDurationMin: raw.sessionMaxDurationMin ?? 0,
+    sessionStopLoss: raw.sessionStopLoss ?? 0,
+    sessionStopWin: raw.sessionStopWin ?? 0,
+    startingBankroll: raw.startingBankroll ?? 900,
   }
 }
 

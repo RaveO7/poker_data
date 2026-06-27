@@ -1,4 +1,5 @@
 import { formatDate, formatDuration, formatMoney } from '../lib/date'
+import { formatProfitPerHour, profitPerHour } from '../lib/analytics'
 import { getAllDayStats } from '../lib/stats'
 import type { PokerData } from '../types'
 import { Card } from './ui'
@@ -21,7 +22,7 @@ export function DailyHistory({ data }: DailyHistoryProps) {
   return (
     <Card title="📅 Historique par jour">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] text-left text-sm">
+        <table className="w-full min-w-[680px] text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 text-white/50">
               <th className="pb-2 pr-4 font-medium">Date</th>
@@ -30,6 +31,7 @@ export function DailyHistory({ data }: DailyHistoryProps) {
               <th className="pb-2 pr-4 font-medium">Wins</th>
               <th className="pb-2 pr-4 font-medium">Tournois</th>
               <th className="pb-2 pr-4 font-medium">Temps</th>
+              <th className="pb-2 pr-4 font-medium">€/h</th>
               <th className="pb-2 font-medium">P&L</th>
             </tr>
           </thead>
@@ -42,6 +44,9 @@ export function DailyHistory({ data }: DailyHistoryProps) {
                 <td className="py-2.5 pr-4 tabular-nums text-emerald-400">{day.spinsWon}</td>
                 <td className="py-2.5 pr-4 tabular-nums">{day.tournamentsPlayed}</td>
                 <td className="py-2.5 pr-4 tabular-nums">{formatDuration(day.durationMs)}</td>
+                <td className="py-2.5 pr-4 tabular-nums text-sky-400">
+                  {formatProfitPerHour(profitPerHour(day.profit, day.durationMs))}
+                </td>
                 <td
                   className={`py-2.5 tabular-nums font-semibold ${day.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
                 >

@@ -1,4 +1,6 @@
-import { formatDuration } from '../lib/date'
+import type { ReactNode } from 'react'
+import { formatDuration, formatMoney } from '../lib/date'
+import { checkSessionGoals, formatProfitPerHour, profitPerHour } from '../lib/analytics'
 import { computeSessionStats, getActiveSession } from '../lib/stats'
 import type { PokerData } from '../types'
 import { ActionButton, StatBox } from './ui'
@@ -8,13 +10,25 @@ interface SessionBarProps {
   tick: number
   onStart: () => void
   onEnd: () => void
+  onUndo: () => void
 }
 
-export function SessionBar({ data, tick, onStart, onEnd }: SessionBarProps) {
+export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarProps) {
   const active = getActiveSession(data)
   void tick
 
   const stats = active ? computeSessionStats(data, active) : null
+  const alerts =
+    active && stats ? checkSessionGoals(data.settings, stats.durationMs, stats.profit) : null
+  const pph = stats ? profitPerHour(stats.profit, stats.durationMs) : null
+
+  const activeSessionEmpty =
+    active != null &&
+    !data.spins.some((s) => s.sessionId === active.id) &&
+    !data.tournaments.some((t) => t.sessionId === active.id)
+
+  const hasUndo =
+    activeSessionEmpty || data.spins.length > 0 || data.tournaments.length > 0
 
   return (
     <div className="rounded-2xl border border-gold/30 bg-gradient-to-r from-felt to-felt-light p-5">
@@ -25,11 +39,27 @@ export function SessionBar({ data, tick, onStart, onEnd }: SessionBarProps) {
             {active ? formatDuration(stats!.durationMs) : '—'}
           </p>
           <p className="mt-1 text-sm text-white/60">
-            {active ? 'Chronomètre actif' : 'Aucune session active'}
+            {active ? (
+              <>
+                {formatProfitPerHour(pph)}
+                {active.note && <span className="ml-2 text-white/40">· {active.note}</span>}
+              </>
+            ) : (
+              'Aucune session active'
+            )}
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {hasUndo && (
+            <button
+              type="button"
+              onClick={onUndo}
+              className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20"
+            >
+              ↩ Annuler
+            </button>
+          )}
           {active ? (
             <ActionButton label="Terminer la session" onClick={onEnd} variant="secondary" />
           ) : (
@@ -38,18 +68,61 @@ export function SessionBar({ data, tick, onStart, onEnd }: SessionBarProps) {
         </div>
       </div>
 
+      {alerts &&
+        (alerts.maxDurationReached || alerts.stopLossReached || alerts.stopWinReached) && (
+          <div className="mt-4 space-y-2">
+            {alerts.maxDurationReached && (
+              <AlertBanner variant="warning">
+                Durée max atteinte ({data.settings.sessionMaxDurationMin} min) — pensez à terminer la
+                session.
+              </AlertBanner>
+            )}
+            {alerts.stopLossReached && (
+              <AlertBanner variant="danger">
+                Stop-loss atteint ({data.settings.sessionStopLoss} €) — objectif de perte max
+                dépassé.
+              </AlertBanner>
+            )}
+            {alerts.stopWinReached && (
+              <AlertBanner variant="success">
+                Stop-win atteint (+{data.settings.sessionStopWin} €) — objectif de gain atteint !
+              </AlertBanner>
+            )}
+          </div>
+        )}
+
       {active && stats && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatBox label="Spins" value={stats.spinsPlayed} />
           <StatBox label="Finales" value={stats.spinsFinal} />
           <StatBox label="Victoires" value={stats.spinsWon} accent="green" />
           <StatBox
             label="Profit session"
-            value={`${stats.profit >= 0 ? '+' : ''}${stats.profit.toFixed(0)} €`}
+            value={formatMoney(stats.profit)}
             accent={stats.profit >= 0 ? 'green' : 'red'}
           />
+          <StatBox label="€ / heure" value={formatProfitPerHour(pph)} accent="blue" />
         </div>
       )}
     </div>
+  )
+}
+
+function AlertBanner({
+  children,
+  variant,
+}: {
+  children: ReactNode
+  variant: 'warning' | 'danger' | 'success'
+}) {
+  const classes = {
+    warning: 'border-amber-500/40 bg-amber-500/15 text-amber-200',
+    danger: 'border-red-500/40 bg-red-500/15 text-red-200',
+    success: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+  }
+  return (
+    <p className={`rounded-lg border px-3 py-2 text-sm font-medium ${classes[variant]}`}>
+      {children}
+    </p>
   )
 }

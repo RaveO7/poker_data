@@ -1,5 +1,10 @@
 import { formatDate } from './date'
-import type { PokerData, SpinEvent } from '../types'
+import {
+  computeSessionStats,
+  computeSpinProfitFromEvents,
+  computeTournamentProfit,
+} from './stats'
+import type { PokerData, SpinEvent, Tournament } from '../types'
 
 export type ChartPeriod = 'session' | 'day' | 'week' | 'month'
 
@@ -9,6 +14,7 @@ export interface ChartDataPoint {
   played: number
   final: number
   won: number
+  profit: number
 }
 
 const MONTH_NAMES = [
@@ -36,6 +42,14 @@ function countSpins(spins: SpinEvent[]) {
     final: spins.filter((s) => s.type === 'final').length,
     won: spins.filter((s) => s.type === 'win').length,
   }
+}
+
+function profitForSpinsAndTournaments(
+  spins: SpinEvent[],
+  tournaments: Tournament[],
+  settings: PokerData['settings'],
+): number {
+  return computeSpinProfitFromEvents(spins, settings) + computeTournamentProfit(tournaments)
 }
 
 function getWeekStartKey(dateKey: string): string {
@@ -66,57 +80,73 @@ function formatSessionLabel(session: PokerData['sessions'][0], index: number): s
   return `S${index + 1} · ${formatDate(session.date)} ${time}`
 }
 
-function groupSpinsByKey(
-  spins: SpinEvent[],
-  keyFn: (spin: SpinEvent) => string,
-): Map<string, SpinEvent[]> {
-  const map = new Map<string, SpinEvent[]>()
-  for (const spin of spins) {
-    const key = keyFn(spin)
-    const group = map.get(key) ?? []
-    group.push(spin)
-    map.set(key, group)
-  }
-  return map
-}
-
-function mapToChartPoints(
-  entries: [string, SpinEvent[]][],
-  labelFn: (key: string, spins: SpinEvent[]) => string,
-): ChartDataPoint[] {
-  return entries
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, group]) => ({
-      key,
-      label: labelFn(key, group),
-      ...countSpins(group),
-    }))
-}
-
 export function getChartData(data: PokerData, period: ChartPeriod): ChartDataPoint[] {
-  const { spins, sessions } = data
+  const { spins, tournaments, sessions, settings } = data
 
-  if (spins.length === 0) return []
+  if (spins.length === 0 && tournaments.length === 0) return []
 
   switch (period) {
-    case 'day':
-      return mapToChartPoints([...groupSpinsByKey(spins, (s) => s.date)], (key) =>
-        formatDate(key),
-      )
+    case 'day': {
+      const dates = new Set<string>()
+      spins.forEach((s) => dates.add(s.date))
+      tournaments.forEach((t) => dates.add(t.date))
+      return [...dates]
+        .sort((a, b) => a.localeCompare(b))
+        .map((date) => {
+          const daySpins = spins.filter((s) => s.date === date)
+          const dayTournaments = tournaments.filter((t) => t.date === date)
+          return {
+            key: date,
+            label: formatDate(date),
+            ...countSpins(daySpins),
+            profit: profitForSpinsAndTournaments(daySpins, dayTournaments, settings),
+          }
+        })
+    }
 
-    case 'week':
-      return mapToChartPoints([...groupSpinsByKey(spins, (s) => getWeekStartKey(s.date))], (key) =>
-        formatWeekLabel(key),
-      )
+    case 'week': {
+      const keys = new Set<string>()
+      spins.forEach((s) => keys.add(getWeekStartKey(s.date)))
+      tournaments.forEach((t) => keys.add(getWeekStartKey(t.date)))
+      return [...keys]
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+          const weekSpins = spins.filter((s) => getWeekStartKey(s.date) === key)
+          const weekTournaments = tournaments.filter((t) => getWeekStartKey(t.date) === key)
+          return {
+            key,
+            label: formatWeekLabel(key),
+            ...countSpins(weekSpins),
+            profit: profitForSpinsAndTournaments(weekSpins, weekTournaments, settings),
+          }
+        })
+    }
 
-    case 'month':
-      return mapToChartPoints([...groupSpinsByKey(spins, (s) => s.date.slice(0, 7))], (key) =>
-        formatMonthLabel(key),
-      )
+    case 'month': {
+      const keys = new Set<string>()
+      spins.forEach((s) => keys.add(s.date.slice(0, 7)))
+      tournaments.forEach((t) => keys.add(t.date.slice(0, 7)))
+      return [...keys]
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+          const monthSpins = spins.filter((s) => s.date.slice(0, 7) === key)
+          const monthTournaments = tournaments.filter((t) => t.date.slice(0, 7) === key)
+          return {
+            key,
+            label: formatMonthLabel(key),
+            ...countSpins(monthSpins),
+            profit: profitForSpinsAndTournaments(monthSpins, monthTournaments, settings),
+          }
+        })
+    }
 
     case 'session': {
       const sessionOrder = [...sessions]
-        .filter((s) => spins.some((sp) => sp.sessionId === s.id))
+        .filter(
+          (s) =>
+            spins.some((sp) => sp.sessionId === s.id) ||
+            tournaments.some((t) => t.sessionId === s.id),
+        )
         .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
       return sessionOrder.map((session, index) => {
@@ -125,6 +155,7 @@ export function getChartData(data: PokerData, period: ChartPeriod): ChartDataPoi
           key: session.id,
           label: formatSessionLabel(session, index),
           ...countSpins(sessionSpins),
+          profit: computeSessionStats(data, session).profit,
         }
       })
     }
@@ -137,8 +168,9 @@ export function getChartSummary(points: ChartDataPoint[]) {
       played: acc.played + p.played,
       final: acc.final + p.final,
       won: acc.won + p.won,
+      profit: acc.profit + p.profit,
     }),
-    { played: 0, final: 0, won: 0 },
+    { played: 0, final: 0, won: 0, profit: 0 },
   )
 
   return {

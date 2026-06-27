@@ -1,6 +1,7 @@
 export type SpinEventType = 'played' | 'final' | 'win'
 
 export const SPIN_STAKES = [2, 5, 10] as const
+export const SPIN_MULTIPLIERS = [2, 3, 4, 5] as const
 export const TOURNAMENT_STAKES = [1, 3, 5, 10] as const
 export const TOURNAMENT_TICKET_VALUE = 0
 
@@ -22,6 +23,7 @@ export function formatTournamentEntry(buyIn: number): string {
 }
 
 export type SpinStake = (typeof SPIN_STAKES)[number]
+export type SpinMultiplier = (typeof SPIN_MULTIPLIERS)[number]
 export type TournamentStake = (typeof TOURNAMENT_STAKES)[number]
 
 export interface Session {
@@ -30,6 +32,7 @@ export interface Session {
   startTime: string
   endTime?: string
   isActive: boolean
+  note?: string
 }
 
 export interface SpinEvent {
@@ -39,6 +42,8 @@ export interface SpinEvent {
   timestamp: string
   type: SpinEventType
   stake: number
+  /** Multiplicateur de la roue (×2, ×3, …) — uniquement pour type === 'win'. */
+  multiplier?: number
 }
 
 export interface Tournament {
@@ -56,7 +61,16 @@ export interface Tournament {
 export interface Settings {
   selectedSpinStake: number
   selectedTournamentStake: number
+  /** Dernier multiplicateur choisi pour une victoire spin. */
+  selectedSpinMultiplier: number
+  /** Fallback pour les victoires sans multiplier (historique importé). */
   spinWinMultiplier: number
+  /** Objectifs de session (0 = désactivé). */
+  sessionMaxDurationMin: number
+  sessionStopLoss: number
+  sessionStopWin: number
+  /** Bankroll au démarrage du suivi (point de départ de la courbe). */
+  startingBankroll: number
 }
 
 export interface PokerData {
@@ -91,7 +105,12 @@ export interface SessionStats {
 export const DEFAULT_SETTINGS: Settings = {
   selectedSpinStake: 5,
   selectedTournamentStake: 5,
+  selectedSpinMultiplier: 3,
   spinWinMultiplier: 3,
+  sessionMaxDurationMin: 0,
+  sessionStopLoss: 0,
+  sessionStopWin: 0,
+  startingBankroll: 900,
 }
 
 export const DEFAULT_DATA: PokerData = {

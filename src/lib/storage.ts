@@ -11,18 +11,29 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     spinWinGain?: number
     selectedSpinStake?: number
     selectedTournamentStake?: number
+    selectedSpinMultiplier?: number
     spinWinMultiplier?: number
+    sessionMaxDurationMin?: number
+    sessionStopLoss?: number
+    sessionStopWin?: number
+    startingBankroll?: number
   }
 
   return {
     selectedSpinStake: legacy.selectedSpinStake ?? legacy.spinBuyIn ?? DEFAULT_DATA.settings.selectedSpinStake,
     selectedTournamentStake:
       legacy.selectedTournamentStake ?? legacy.tournamentBuyIn ?? DEFAULT_DATA.settings.selectedTournamentStake,
+    selectedSpinMultiplier:
+      legacy.selectedSpinMultiplier ?? legacy.spinWinMultiplier ?? DEFAULT_DATA.settings.selectedSpinMultiplier,
     spinWinMultiplier:
       legacy.spinWinMultiplier ??
       (legacy.spinWinGain && legacy.spinBuyIn
         ? legacy.spinWinGain / legacy.spinBuyIn
         : DEFAULT_DATA.settings.spinWinMultiplier),
+    sessionMaxDurationMin: legacy.sessionMaxDurationMin ?? DEFAULT_DATA.settings.sessionMaxDurationMin,
+    sessionStopLoss: legacy.sessionStopLoss ?? DEFAULT_DATA.settings.sessionStopLoss,
+    sessionStopWin: legacy.sessionStopWin ?? DEFAULT_DATA.settings.sessionStopWin,
+    startingBankroll: legacy.startingBankroll ?? DEFAULT_DATA.settings.startingBankroll,
   }
 }
 

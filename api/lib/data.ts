@@ -5,7 +5,12 @@ export interface PokerData {
   settings: {
     selectedSpinStake: number
     selectedTournamentStake: number
+    selectedSpinMultiplier: number
     spinWinMultiplier: number
+    sessionMaxDurationMin: number
+    sessionStopLoss: number
+    sessionStopWin: number
+    startingBankroll: number
   }
 }
 
@@ -17,7 +22,12 @@ const HISTORICAL_SPINS = { played: 430, final: 283, win: 160 }
 const DEFAULT_SETTINGS = {
   selectedSpinStake: 5,
   selectedTournamentStake: 5,
+  selectedSpinMultiplier: 3,
   spinWinMultiplier: 3,
+  sessionMaxDurationMin: 0,
+  sessionStopLoss: 0,
+  sessionStopWin: 0,
+  startingBankroll: 900,
 }
 
 function createSpinEvents(count: number, type: string, sessionId: string, date: string) {
@@ -76,18 +86,29 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     spinWinGain?: number
     selectedSpinStake?: number
     selectedTournamentStake?: number
+    selectedSpinMultiplier?: number
     spinWinMultiplier?: number
+    sessionMaxDurationMin?: number
+    sessionStopLoss?: number
+    sessionStopWin?: number
+    startingBankroll?: number
   }
 
   return {
     selectedSpinStake: legacy.selectedSpinStake ?? legacy.spinBuyIn ?? DEFAULT_SETTINGS.selectedSpinStake,
     selectedTournamentStake:
       legacy.selectedTournamentStake ?? legacy.tournamentBuyIn ?? DEFAULT_SETTINGS.selectedTournamentStake,
+    selectedSpinMultiplier:
+      legacy.selectedSpinMultiplier ?? legacy.spinWinMultiplier ?? DEFAULT_SETTINGS.selectedSpinMultiplier,
     spinWinMultiplier:
       legacy.spinWinMultiplier ??
       (legacy.spinWinGain && legacy.spinBuyIn
         ? legacy.spinWinGain / legacy.spinBuyIn
         : DEFAULT_SETTINGS.spinWinMultiplier),
+    sessionMaxDurationMin: legacy.sessionMaxDurationMin ?? DEFAULT_SETTINGS.sessionMaxDurationMin,
+    sessionStopLoss: legacy.sessionStopLoss ?? DEFAULT_SETTINGS.sessionStopLoss,
+    sessionStopWin: legacy.sessionStopWin ?? DEFAULT_SETTINGS.sessionStopWin,
+    startingBankroll: legacy.startingBankroll ?? DEFAULT_SETTINGS.startingBankroll,
   }
 }
 

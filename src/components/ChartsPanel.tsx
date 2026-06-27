@@ -10,6 +10,7 @@ import {
   YAxis,
   type LegendPayload,
 } from 'recharts'
+import { formatMoney } from '../lib/date'
 import {
   CHART_PERIOD_LABELS,
   getChartData,
@@ -29,9 +30,10 @@ const COLORS = {
   played: '#94a3b8',
   final: '#38bdf8',
   won: '#34d399',
+  profit: '#d4af37',
 }
 
-type SeriesKey = 'played' | 'final' | 'won'
+type SeriesKey = 'played' | 'final' | 'won' | 'profit'
 
 function CustomTooltip({
   active,
@@ -39,7 +41,7 @@ function CustomTooltip({
   label,
 }: {
   active?: boolean
-  payload?: { name: string; value: number; color: string }[]
+  payload?: { name: string; value: number; color: string; dataKey: string }[]
   label?: string
 }) {
   if (!active || !payload?.length) return null
@@ -49,7 +51,10 @@ function CustomTooltip({
       <p className="mb-1 font-semibold text-gold-light">{label}</p>
       {payload.map((entry) => (
         <p key={entry.name} style={{ color: entry.color }}>
-          {entry.name} : <span className="font-bold">{entry.value}</span>
+          {entry.name} :{' '}
+          <span className="font-bold">
+            {entry.dataKey === 'profit' ? formatMoney(entry.value) : entry.value}
+          </span>
         </p>
       ))}
     </div>
@@ -76,7 +81,7 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
 
   const handleLegendClick = (entry: LegendPayload) => {
     const key = entry.dataKey
-    if (key === 'played' || key === 'final' || key === 'won') {
+    if (key === 'played' || key === 'final' || key === 'won' || key === 'profit') {
       toggleSeries(key)
     }
   }
@@ -84,7 +89,9 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
   const legendFormatter = (value: string, entry: LegendPayload) => {
     const key = entry.dataKey
     const hidden =
-      key === 'played' || key === 'final' || key === 'won' ? hiddenSeries.has(key) : false
+      key === 'played' || key === 'final' || key === 'won' || key === 'profit'
+        ? hiddenSeries.has(key)
+        : false
     return (
       <span
         style={{
@@ -139,7 +146,17 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
                   textAnchor={chartData.length > 5 ? 'end' : 'middle'}
                   height={chartData.length > 5 ? 60 : 30}
                 />
-                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} allowDecimals={false} />
+                <YAxis
+                  yAxisId="count"
+                  tick={{ fill: '#9ca3af', fontSize: 11 }}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  yAxisId="profit"
+                  orientation="right"
+                  tick={{ fill: '#d4af37', fontSize: 11 }}
+                  tickFormatter={(v) => `${v}€`}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   wrapperStyle={{ color: '#e8f0eb', fontSize: 12, cursor: 'pointer' }}
@@ -147,6 +164,7 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
                   formatter={legendFormatter}
                 />
                 <Line
+                  yAxisId="count"
                   type="monotone"
                   dataKey="played"
                   name="Parties jouées"
@@ -156,6 +174,7 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
                   hide={hiddenSeries.has('played')}
                 />
                 <Line
+                  yAxisId="count"
                   type="monotone"
                   dataKey="final"
                   name="Finales"
@@ -165,6 +184,7 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
                   hide={hiddenSeries.has('final')}
                 />
                 <Line
+                  yAxisId="count"
                   type="monotone"
                   dataKey="won"
                   name="Victoires"
@@ -173,11 +193,21 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
                   dot={{ r: 3 }}
                   hide={hiddenSeries.has('won')}
                 />
+                <Line
+                  yAxisId="profit"
+                  type="monotone"
+                  dataKey="profit"
+                  name="Profit"
+                  stroke={COLORS.profit}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  hide={hiddenSeries.has('profit')}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-6">
             <SummaryItem label="Périodes" value={summary.periods} />
             <SummaryItem label="Parties" value={summary.played} />
             <SummaryItem label="Finales" value={summary.final} color={COLORS.final} />
@@ -186,6 +216,11 @@ export function ChartsPanel({ data }: ChartsPanelProps) {
               label="Taux victoire"
               value={`${summary.winRate.toFixed(1)}%`}
               color={COLORS.won}
+            />
+            <SummaryItem
+              label="Profit total"
+              value={formatMoney(summary.profit)}
+              color={COLORS.profit}
             />
           </div>
         </>

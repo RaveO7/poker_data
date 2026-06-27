@@ -1,6 +1,8 @@
+import { BankrollChart } from './components/BankrollChart'
 import { ChartsPanel } from './components/ChartsPanel'
 import { GlobalStats } from './components/GlobalStats'
 import { DailyHistory } from './components/DailyHistory'
+import { InsightsPanel } from './components/InsightsPanel'
 import { SessionBar } from './components/SessionBar'
 import { SessionHistory } from './components/SessionHistory'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -20,6 +22,7 @@ function App() {
     startSession,
     endSession,
     updateSession,
+    undoLastAction,
     addSpin,
     startTournament,
     finishTournament,
@@ -78,10 +81,13 @@ function App() {
       )}
 
       <main className="space-y-6">
-        <GlobalStats data={data} />
-        <ChartsPanel data={data} />
-        <StatsOverview data={data} />
-        <SessionBar data={data} tick={tick} onStart={startSession} onEnd={endSession} />
+        <SessionBar
+          data={data}
+          tick={tick}
+          onStart={startSession}
+          onEnd={endSession}
+          onUndo={undoLastAction}
+        />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <SpinTracker
@@ -96,6 +102,12 @@ function App() {
             onStakeChange={(stake) => updateSettings({ selectedTournamentStake: stake })}
           />
         </div>
+
+        <GlobalStats data={data} />
+        <BankrollChart data={data} />
+        <ChartsPanel data={data} />
+        <InsightsPanel data={data} />
+        <StatsOverview data={data} />
 
         <DailyHistory data={data} />
         <SessionHistory data={data} onUpdateSession={updateSession} />

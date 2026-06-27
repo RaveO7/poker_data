@@ -15,13 +15,14 @@ interface SessionHistoryProps {
   data: PokerData
   onUpdateSession: (
     id: string,
-    updates: Pick<Session, 'date' | 'startTime' | 'endTime'>,
+    updates: Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>,
   ) => void
 }
 
 interface EditForm {
   startTime: string
   endTime: string
+  note: string
 }
 
 function sessionDurationPreview(session: Session, startTime: string, endTime: string): number {
@@ -37,19 +38,20 @@ function sessionDurationPreview(session: Session, startTime: string, endTime: st
 export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
   const sessions = getRecentSessions(data, 8)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<EditForm>({ startTime: '', endTime: '' })
+  const [form, setForm] = useState<EditForm>({ startTime: '', endTime: '', note: '' })
 
   const startEdit = (session: Session) => {
     setEditingId(session.id)
     setForm({
       startTime: toDatetimeLocalValue(session.startTime),
       endTime: session.endTime ? toDatetimeLocalValue(session.endTime) : '',
+      note: session.note ?? '',
     })
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setForm({ startTime: '', endTime: '' })
+    setForm({ startTime: '', endTime: '', note: '' })
   }
 
   const saveEdit = (session: Session) => {
@@ -64,6 +66,7 @@ export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
     onUpdateSession(session.id, {
       date: startIso.slice(0, 10),
       startTime: startIso,
+      note: form.note.trim() || undefined,
       ...(endIso ? { endTime: endIso } : {}),
     })
     cancelEdit()
@@ -118,6 +121,16 @@ export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
                   <p className="text-sm text-white/50">
                     Durée : {formatDuration(previewMs)}
                   </p>
+                  <label className="block text-sm">
+                    <span className="text-white/60">Note (optionnel)</span>
+                    <input
+                      type="text"
+                      value={form.note}
+                      onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+                      placeholder="ex: focus, fatigué, tilt…"
+                      className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+                    />
+                  </label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -149,6 +162,9 @@ export function SessionHistory({ data, onUpdateSession }: SessionHistoryProps) {
                     <p className="text-sm text-white/50">
                       {s.spinsPlayed} spins · {s.tournamentsPlayed} tournois ·{' '}
                       {formatDuration(s.durationMs)}
+                      {s.session.note && (
+                        <span className="ml-1 text-white/40">· {s.session.note}</span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

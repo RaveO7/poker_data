@@ -13,7 +13,12 @@ const HISTORICAL_TOURNAMENTS = [
 const DEFAULT_SETTINGS = {
   selectedSpinStake: 5,
   selectedTournamentStake: 5,
+  selectedSpinMultiplier: 3,
   spinWinMultiplier: 3,
+  sessionMaxDurationMin: 0,
+  sessionStopLoss: 0,
+  sessionStopWin: 0,
+  startingBankroll: 900,
 }
 
 function createSpinEvents(count, type, sessionId, date) {

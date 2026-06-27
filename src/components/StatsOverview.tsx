@@ -1,4 +1,5 @@
 import { formatDuration, formatMoney } from '../lib/date'
+import { formatProfitPerHour, profitPerHour } from '../lib/analytics'
 import { computeDayStats, getTodayCounts } from '../lib/stats'
 import type { PokerData } from '../types'
 import { Card, StatBox } from './ui'
@@ -11,6 +12,7 @@ export function StatsOverview({ data }: StatsOverviewProps) {
   const today = new Date().toISOString().slice(0, 10)
   const dayStats = computeDayStats(data, today)
   const counts = getTodayCounts(data)
+  const pph = profitPerHour(dayStats.profit, dayStats.durationMs)
 
   const totalGames = counts.played + counts.tournaments
 
@@ -24,7 +26,7 @@ export function StatsOverview({ data }: StatsOverviewProps) {
           value={formatMoney(dayStats.profit)}
           accent={dayStats.profit >= 0 ? 'green' : 'red'}
         />
-        <StatBox label="Tournois gagnants" value={counts.tournamentsWon} accent="green" />
+        <StatBox label="€ / heure" value={formatProfitPerHour(pph)} accent="blue" />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 sm:grid-cols-4">

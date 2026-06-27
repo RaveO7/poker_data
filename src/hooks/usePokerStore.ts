@@ -105,7 +105,7 @@ export function usePokerStore() {
   }, [update])
 
   const updateSession = useCallback(
-    (id: string, updates: Pick<Session, 'date' | 'startTime' | 'endTime'>) => {
+    (id: string, updates: Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>) => {
       update((prev) => ({
         ...prev,
         sessions: prev.sessions.map((s) => {
@@ -121,8 +121,46 @@ export function usePokerStore() {
     [update],
   )
 
+  const undoLastAction = useCallback(() => {
+    update((prev) => {
+      const active = prev.sessions.find((s) => s.isActive)
+      if (active) {
+        const sessionSpins = prev.spins.filter((s) => s.sessionId === active.id)
+        const sessionTournaments = prev.tournaments.filter((t) => t.sessionId === active.id)
+        if (sessionSpins.length === 0 && sessionTournaments.length === 0) {
+          return { ...prev, sessions: prev.sessions.filter((s) => s.id !== active.id) }
+        }
+      }
+
+      const lastSpin = [...prev.spins].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0]
+      const inProgress = prev.tournaments.filter((t) => t.status === 'in_progress')
+      const lastTournament = [...prev.tournaments]
+        .filter((t) => t.status === 'completed' && t.endTime)
+        .sort((a, b) => (b.endTime ?? '').localeCompare(a.endTime ?? ''))[0]
+
+      const candidates: { kind: 'spin' | 'tournament' | 'in_progress'; time: string; id: string }[] =
+        []
+      if (lastSpin) candidates.push({ kind: 'spin', time: lastSpin.timestamp, id: lastSpin.id })
+      if (lastTournament)
+        candidates.push({ kind: 'tournament', time: lastTournament.endTime!, id: lastTournament.id })
+      for (const t of inProgress) {
+        candidates.push({ kind: 'in_progress', time: t.startTime, id: t.id })
+      }
+
+      if (candidates.length === 0) return prev
+
+      candidates.sort((a, b) => b.time.localeCompare(a.time))
+      const target = candidates[0]
+
+      if (target.kind === 'spin') {
+        return { ...prev, spins: prev.spins.filter((s) => s.id !== target.id) }
+      }
+      return { ...prev, tournaments: prev.tournaments.filter((t) => t.id !== target.id) }
+    })
+  }, [update])
+
   const addSpin = useCallback(
-    (type: SpinEventType) => {
+    (type: SpinEventType, multiplier?: number) => {
       update((prev) => {
         const withSession = ensureActiveSession(prev)
         const session = withSession.sessions.find((s) => s.isActive)!
@@ -133,8 +171,17 @@ export function usePokerStore() {
           timestamp: new Date().toISOString(),
           type,
           stake: withSession.settings.selectedSpinStake,
+          ...(type === 'win' && multiplier != null ? { multiplier } : {}),
         }
-        return { ...withSession, spins: [...withSession.spins, event] }
+        const settings =
+          type === 'win' && multiplier != null
+            ? { ...withSession.settings, selectedSpinMultiplier: multiplier }
+            : withSession.settings
+        return {
+          ...withSession,
+          settings,
+          spins: [...withSession.spins, event],
+        }
       })
     },
     [update],
@@ -220,6 +267,7 @@ export function usePokerStore() {
     startSession,
     endSession,
     updateSession,
+    undoLastAction,
     addSpin,
     startTournament,
     finishTournament,

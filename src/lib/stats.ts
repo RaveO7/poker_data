@@ -1,4 +1,5 @@
 import type { DayStats, PokerData, Session, SessionStats, Settings, SpinEvent } from '../types'
+import { profitPerHour, spinRoi } from './analytics'
 import { HISTORICAL_SPIN_STAKE } from '../types'
 
 function sessionDurationMs(session: Session, now = Date.now()): number {
@@ -11,12 +12,16 @@ export function getSpinStake(spin: SpinEvent): number {
   return spin.stake ?? HISTORICAL_SPIN_STAKE
 }
 
+export function getSpinWinMultiplier(spin: SpinEvent, settings: Settings): number {
+  return spin.multiplier ?? settings.spinWinMultiplier
+}
+
 export function computeSpinProfitFromEvents(spins: SpinEvent[], settings: Settings): number {
   let profit = 0
   for (const spin of spins) {
     const stake = getSpinStake(spin)
     if (spin.type === 'played') profit -= stake
-    if (spin.type === 'win') profit += stake * settings.spinWinMultiplier
+    if (spin.type === 'win') profit += stake * getSpinWinMultiplier(spin, settings)
   }
   return profit
 }
@@ -132,6 +137,8 @@ export function getGlobalStats(data: PokerData) {
     spinProfit,
     tournamentProfit,
     profit: spinProfit + tournamentProfit,
+    profitPerHour: profitPerHour(spinProfit + tournamentProfit, durationMs),
+    spinRoi: spinRoi(data.spins, data.settings),
     finalRate: played > 0 ? (final / played) * 100 : 0,
     winRate: played > 0 ? (won / played) * 100 : 0,
   }

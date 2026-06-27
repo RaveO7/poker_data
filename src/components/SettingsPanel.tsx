@@ -56,11 +56,12 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
           </div>
 
           <p className="text-sm text-white/50">
-            Le gain estimé par victoire spin = ticket × multiplicateur (ex: 5 € × 3 = 15 €).
+            Chaque victoire spin enregistre son multiplicateur (×2 à ×5). Le réglage ci-dessous
+            s&apos;applique uniquement aux anciennes victoires sans multiplicateur (import Excel).
           </p>
 
           <label className="block text-left text-sm">
-            <span className="text-white/60">Multiplicateur de gain spin (× ticket)</span>
+            <span className="text-white/60">Multiplicateur par défaut (historique)</span>
             <input
               type="number"
               min="1"
@@ -70,6 +71,39 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
               className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
             />
           </label>
+
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-3 text-sm font-medium text-white/70">Bankroll</p>
+            <GoalInput
+              label="Bankroll de départ (€)"
+              value={data.settings.startingBankroll}
+              onChange={(v) => onUpdate({ startingBankroll: v })}
+            />
+          </div>
+
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-3 text-sm font-medium text-white/70">Objectifs de session</p>
+            <p className="mb-3 text-xs text-white/40">
+              Mettez 0 pour désactiver. Des alertes s&apos;affichent pendant la session.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <GoalInput
+                label="Durée max (min)"
+                value={data.settings.sessionMaxDurationMin}
+                onChange={(v) => onUpdate({ sessionMaxDurationMin: v })}
+              />
+              <GoalInput
+                label="Stop-loss (€)"
+                value={data.settings.sessionStopLoss}
+                onChange={(v) => onUpdate({ sessionStopLoss: v })}
+              />
+              <GoalInput
+                label="Stop-win (€)"
+                value={data.settings.sessionStopWin}
+                onChange={(v) => onUpdate({ sessionStopWin: v })}
+              />
+            </div>
+          </div>
 
           <input
             ref={fileInputRef}
@@ -112,5 +146,29 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
         </div>
       )}
     </Card>
+  )
+}
+
+function GoalInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="block text-left text-sm">
+      <span className="text-white/60">{label}</span>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={value}
+        onChange={(e) => onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+        className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+      />
+    </label>
   )
 }
