@@ -128,6 +128,7 @@ export function usePokerStore() {
       sessionUpdates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
       spinCounts: SessionSpinCounts,
       profit: number,
+      winMultipliers: number[],
     ) => {
       update((prev) => {
         const sessions = prev.sessions.map((s) => {
@@ -141,7 +142,7 @@ export function usePokerStore() {
         const withSpins = {
           ...prev,
           sessions,
-          spins: rebuildSessionSpins({ ...prev, sessions }, id, spinCounts),
+          spins: rebuildSessionSpins({ ...prev, sessions }, id, spinCounts, winMultipliers),
         }
         const session = withSpins.sessions.find((s) => s.id === id)!
         const computed = getSessionComputedProfit(withSpins, session)

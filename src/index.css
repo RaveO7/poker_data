@@ -11,12 +11,38 @@
   --font-sans: "Segoe UI", system-ui, sans-serif;
 }
 
+:root,
+[data-theme="dark"] {
+  --app-bg: linear-gradient(160deg, var(--color-felt-dark) 0%, #0a1a12 50%, #050f0a 100%);
+  --app-text: #e8f0eb;
+  --app-text-muted: rgb(232 240 235 / 0.5);
+  --app-surface: rgb(255 255 255 / 0.05);
+  --app-surface-raised: rgb(0 0 0 / 0.25);
+  --app-border: rgb(255 255 255 / 0.1);
+  --app-input-bg: rgb(0 0 0 / 0.3);
+  --app-input-border: rgb(255 255 255 / 0.2);
+  --app-heading: var(--color-gold-light);
+}
+
+[data-theme="light"] {
+  --app-bg: linear-gradient(160deg, #e8f2ec 0%, #d4e8dc 45%, #c5ddd2 100%);
+  --app-text: #1a2e24;
+  --app-text-muted: rgb(26 46 36 / 0.55);
+  --app-surface: rgb(255 255 255 / 0.75);
+  --app-surface-raised: rgb(255 255 255 / 0.9);
+  --app-border: rgb(13 74 46 / 0.15);
+  --app-input-bg: rgb(255 255 255 / 0.95);
+  --app-input-border: rgb(13 74 46 / 0.2);
+  --app-heading: #0d4a2e;
+}
+
 body {
   margin: 0;
   min-height: 100svh;
-  background: linear-gradient(160deg, var(--color-felt-dark) 0%, #0a1a12 50%, #050f0a 100%);
-  color: #e8f0eb;
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: var(--font-sans);
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 #root {
@@ -26,4 +52,65 @@ body {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   opacity: 1;
+}
+
+[data-theme="light"] .text-white {
+  color: var(--app-text);
+}
+
+[data-theme="light"] .text-white\/70 {
+  color: rgb(26 46 36 / 0.7);
+}
+
+[data-theme="light"] .text-white\/60,
+[data-theme="light"] .text-white\/50,
+[data-theme="light"] .text-white\/40,
+[data-theme="light"] .text-white\/30 {
+  color: var(--app-text-muted);
+}
+
+[data-theme="light"] .text-gold-light {
+  color: var(--app-heading);
+}
+
+[data-theme="light"] .border-white\/10,
+[data-theme="light"] .border-white\/20 {
+  border-color: var(--app-border);
+}
+
+[data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/10,
+[data-theme="light"] .bg-felt-light\/30 {
+  background-color: var(--app-surface);
+}
+
+[data-theme="light"] .bg-black\/20,
+[data-theme="light"] .bg-black\/25,
+[data-theme="light"] .bg-black\/30 {
+  background-color: var(--app-surface-raised);
+}
+
+[data-theme="light"] .hover\:bg-white\/15:hover,
+[data-theme="light"] .hover\:bg-white\/20:hover {
+  background-color: rgb(13 74 46 / 0.08);
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: var(--app-input-bg);
+  border-color: var(--app-input-border);
+  color: var(--app-text);
+}
+
+[data-theme="light"] .from-felt {
+  --tw-gradient-from: #156b42;
+}
+
+[data-theme="light"] .to-felt-light {
+  --tw-gradient-to: #1d7a4d;
+}
+
+[data-theme="light"] .border-gold\/30 {
+  border-color: rgb(212 168 67 / 0.45);
 }

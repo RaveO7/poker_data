@@ -16,6 +16,7 @@ export interface PokerData {
     maxSpinsPerDay: number
     bankrollGoal: number
     customNoteTags: string[]
+    theme: 'dark' | 'light'
   }
 }
 
@@ -38,6 +39,7 @@ const DEFAULT_SETTINGS = {
   maxSpinsPerDay: 0,
   bankrollGoal: 0,
   customNoteTags: [],
+  theme: 'dark',
 }
 
 function createSpinEvents(count: number, type: string, sessionId: string, date: string) {
@@ -107,6 +109,7 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     maxSpinsPerDay?: number
     bankrollGoal?: number
     customNoteTags?: string[]
+    theme?: string
   }
 
   return {
@@ -131,6 +134,7 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     customNoteTags: Array.isArray(legacy.customNoteTags)
       ? legacy.customNoteTags
       : DEFAULT_SETTINGS.customNoteTags,
+    theme: legacy.theme === 'light' ? 'light' : DEFAULT_SETTINGS.theme,
   }
 }
 

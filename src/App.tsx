@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { GoalsPanel } from './components/GoalsPanel'
 import { BankrollChart } from './components/BankrollChart'
 import { ChartsPanel } from './components/ChartsPanel'
@@ -8,9 +9,11 @@ import { SessionBar } from './components/SessionBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { SpinTracker } from './components/SpinTracker'
 import { StatsOverview } from './components/StatsOverview'
+import { ThemeToggle } from './components/ThemeToggle'
 import { TournamentTracker } from './components/TournamentTracker'
 import { usePokerStore } from './hooks/usePokerStore'
 import { DATA_FILE_PATH } from './lib/api'
+import { applyTheme } from './lib/theme'
 
 function App() {
   const {
@@ -31,6 +34,10 @@ function App() {
     resetData,
     importFromFile,
   } = usePokerStore()
+
+  useEffect(() => {
+    if (data) applyTheme(data.settings.theme ?? 'dark')
+  }, [data?.settings.theme])
 
   if (loading) {
     return (
@@ -70,9 +77,17 @@ function App() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gold-light sm:text-4xl">Poker Tracker</h1>
-        <p className="mt-2 text-white/60">Suivez vos spins, tournois et votre évolution au quotidien</p>
+      <header className="mb-8">
+        <div className="mb-4 flex justify-end">
+          <ThemeToggle
+            theme={data.settings.theme ?? 'dark'}
+            onChange={(theme) => updateSettings({ theme })}
+          />
+        </div>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gold-light sm:text-4xl">Poker Tracker</h1>
+          <p className="mt-2 text-white/60">Suivez vos spins, tournois et votre évolution au quotidien</p>
+        </div>
       </header>
 
       {error && (

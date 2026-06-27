@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS = {
   maxSpinsPerDay: 0,
   bankrollGoal: 0,
   customNoteTags: [],
+  theme: 'dark',
 }
 
 function createSpinEvents(count, type, sessionId, date) {

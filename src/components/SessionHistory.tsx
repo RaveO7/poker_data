@@ -12,10 +12,16 @@ import {
   filterSessions,
   type HistoryFilterState,
 } from '../lib/historyFilters'
-import { computeSessionStats } from '../lib/stats'
+import {
+  computeSessionStats,
+  computeSpinProfitFromCounts,
+  getSessionWinMultipliers,
+  getSpinStake,
+} from '../lib/stats'
+import type { SessionSpinCounts } from '../lib/stats'
 import type { Session } from '../types'
 import type { PokerData } from '../types'
-import type { SessionSpinCounts } from '../lib/stats'
+import { SPIN_MULTIPLIERS } from '../types'
 import { Card } from './ui'
 
 interface SessionHistoryProps {
@@ -26,6 +32,7 @@ interface SessionHistoryProps {
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
     spinCounts: SessionSpinCounts,
     profit: number,
+    winMultipliers: number[],
   ) => void
 }
 
@@ -37,6 +44,8 @@ interface EditForm {
   spinsFinal: string
   spinsWon: string
   profit: string
+  winMultipliers: number[]
+  stake: number
 }
 
 function sessionDurationPreview(session: Session, startTime: string, endTime: string): number {
@@ -47,6 +56,21 @@ function sessionDurationPreview(session: Session, startTime: string, endTime: st
       ? new Date(endTime).getTime()
       : Date.now()
   return Math.max(0, end - start)
+}
+
+function profitFromForm(form: EditForm): string {
+  const played = parseInt(form.spinsPlayed, 10) || 0
+  return String(computeSpinProfitFromCounts(form.stake, played, form.winMultipliers))
+}
+
+function resizeWinMultipliers(
+  current: number[],
+  won: number,
+  defaultMult: number,
+): number[] {
+  const next = [...current]
+  while (next.length < won) next.push(defaultMult)
+  return next.slice(0, won)
 }
 
 export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHistoryProps) {
@@ -62,10 +86,17 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
     spinsFinal: '0',
     spinsWon: '0',
     profit: '0',
+    winMultipliers: [],
+    stake: 5,
   })
 
   const startEdit = (stats: (typeof sessions)[number]) => {
     const full = computeSessionStats(data, stats.session)
+    const sessionSpins = data.spins.filter((s) => s.sessionId === stats.session.id)
+    const stake =
+      sessionSpins.length > 0 ? getSpinStake(sessionSpins[0]) : data.settings.selectedSpinStake
+    const winMultipliers = getSessionWinMultipliers(data, stats.session.id)
+
     setEditingId(stats.session.id)
     setForm({
       startTime: toDatetimeLocalValue(stats.session.startTime),
@@ -75,6 +106,8 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       spinsFinal: String(full.spinsFinal),
       spinsWon: String(full.spinsWon),
       profit: String(full.profit),
+      winMultipliers,
+      stake,
     })
   }
 
@@ -88,6 +121,8 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       spinsFinal: '0',
       spinsWon: '0',
       profit: '0',
+      winMultipliers: [],
+      stake: 5,
     })
   }
 
@@ -95,6 +130,27 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
     const n = parseInt(value, 10)
     if (Number.isNaN(n) || n < 0) return null
     return n
+  }
+
+  const updateWonCount = (value: string) => {
+    const won = parseInt(value, 10) || 0
+    setForm((f) => {
+      const winMultipliers = resizeWinMultipliers(
+        f.winMultipliers,
+        won,
+        data.settings.selectedSpinMultiplier,
+      )
+      const next = { ...f, spinsWon: value, winMultipliers }
+      return { ...next, profit: profitFromForm(next) }
+    })
+  }
+
+  const setWinMultiplier = (index: number, mult: number) => {
+    setForm((f) => {
+      const winMultipliers = f.winMultipliers.map((m, i) => (i === index ? mult : m))
+      const next = { ...f, winMultipliers }
+      return { ...next, profit: profitFromForm(next) }
+    })
   }
 
   const saveEdit = (session: Session) => {
@@ -120,6 +176,11 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       return
     }
 
+    if (form.winMultipliers.length !== won) {
+      alert('Le nombre de multiplicateurs doit correspondre aux victoires.')
+      return
+    }
+
     onSaveSessionEdits(
       session.id,
       {
@@ -130,6 +191,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       },
       { played, final, won },
       profitValue,
+      form.winMultipliers,
     )
     cancelEdit()
   }
@@ -153,10 +215,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
             : s.durationMs
 
           return (
-            <div
-              key={s.session.id}
-              className="rounded-xl bg-black/20 px-4 py-3"
-            >
+            <div key={s.session.id} className="rounded-xl bg-black/20 px-4 py-3">
               {isEditing ? (
                 <div className="space-y-3">
                   <p className="font-medium">{formatDate(s.session.date)}</p>
@@ -180,9 +239,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       />
                     </label>
                   )}
-                  <p className="text-sm text-white/50">
-                    Durée : {formatDuration(previewMs)}
-                  </p>
+                  <p className="text-sm text-white/50">Durée : {formatDuration(previewMs)}</p>
                   <div className="grid grid-cols-3 gap-3">
                     <label className="block text-sm">
                       <span className="text-white/60">Parties</span>
@@ -191,7 +248,13 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                         min="0"
                         step="1"
                         value={form.spinsPlayed}
-                        onChange={(e) => setForm((f) => ({ ...f, spinsPlayed: e.target.value }))}
+                        onChange={(e) => {
+                          const spinsPlayed = e.target.value
+                          setForm((f) => {
+                            const next = { ...f, spinsPlayed }
+                            return { ...next, profit: profitFromForm(next) }
+                          })
+                        }}
                         className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
                       />
                     </label>
@@ -213,11 +276,52 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                         min="0"
                         step="1"
                         value={form.spinsWon}
-                        onChange={(e) => setForm((f) => ({ ...f, spinsWon: e.target.value }))}
+                        onChange={(e) => updateWonCount(e.target.value)}
                         className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
                       />
                     </label>
                   </div>
+
+                  {form.winMultipliers.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-sm text-white/60">
+                        Multiplicateurs des victoires ({form.stake} € / spin)
+                      </p>
+                      <div className="space-y-2">
+                        {form.winMultipliers.map((mult, index) => (
+                          <div
+                            key={index}
+                            className="flex flex-wrap items-center gap-2 rounded-lg bg-black/25 px-3 py-2"
+                          >
+                            <span className="w-16 text-xs text-white/50">Win {index + 1}</span>
+                            <div className="flex flex-wrap gap-1">
+                              {SPIN_MULTIPLIERS.map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setWinMultiplier(index, m)}
+                                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                                    mult === m
+                                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                                      : 'bg-white/10 text-white/80 hover:bg-white/20'
+                                  }`}
+                                >
+                                  ×{m}
+                                </button>
+                              ))}
+                            </div>
+                            <span className="ml-auto text-xs text-emerald-400">
+                              +{form.stake * mult} €
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-xs text-white/40">
+                        P&L calculé : {formatMoney(parseFloat(profitFromForm(form)))}
+                      </p>
+                    </div>
+                  )}
+
                   <label className="block text-sm">
                     <span className="text-white/60">P&L session (€)</span>
                     <input
@@ -228,7 +332,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
                     />
                     <p className="mt-1 text-xs text-white/40">
-                      Corrige le gain/perte réel si les multiplicateurs enregistrés sont faux.
+                      Ajustez manuellement seulement si le P&L réel diffère du calcul spins.
                     </p>
                   </label>
                   <label className="block text-sm">

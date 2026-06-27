@@ -171,10 +171,30 @@ export interface SessionSpinCounts {
   won: number
 }
 
+export function getSessionWinMultipliers(data: PokerData, sessionId: string): number[] {
+  return data.spins
+    .filter((s) => s.sessionId === sessionId && s.type === 'win')
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    .map((s) => getSpinWinMultiplier(s, data.settings))
+}
+
+export function computeSpinProfitFromCounts(
+  stake: number,
+  played: number,
+  winMultipliers: number[],
+): number {
+  let profit = -played * stake
+  for (const mult of winMultipliers) {
+    profit += stake * mult
+  }
+  return profit
+}
+
 export function rebuildSessionSpins(
   data: PokerData,
   sessionId: string,
   counts: SessionSpinCounts,
+  winMultipliers: number[] = [],
 ): SpinEvent[] {
   const session = data.sessions.find((s) => s.id === sessionId)
   if (!session) return data.spins
@@ -184,7 +204,7 @@ export function rebuildSessionSpins(
 
   const stake =
     existing.length > 0 ? getSpinStake(existing[0]) : data.settings.selectedSpinStake
-  const multiplier =
+  const defaultMultiplier =
     existing.find((s) => s.type === 'win')?.multiplier ?? data.settings.selectedSpinMultiplier
 
   const startMs = new Date(session.startTime).getTime()
@@ -229,7 +249,7 @@ export function rebuildSessionSpins(
       timestamp: timestamp(),
       type: 'win',
       stake,
-      multiplier,
+      multiplier: winMultipliers[i] ?? defaultMultiplier,
     })
   }
 

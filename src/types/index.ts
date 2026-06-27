@@ -26,6 +26,7 @@ export function formatTournamentEntry(buyIn: number): string {
 export type SpinStake = (typeof SPIN_STAKES)[number]
 export type SpinMultiplier = (typeof SPIN_MULTIPLIERS)[number]
 export type TournamentStake = (typeof TOURNAMENT_STAKES)[number]
+export type AppTheme = 'dark' | 'light'
 
 export interface Session {
   id: string
@@ -82,6 +83,8 @@ export interface Settings {
   bankrollGoal: number
   /** Tags de notes personnalisés (en plus des presets). */
   customNoteTags: string[]
+  /** Thème d'affichage. */
+  theme: AppTheme
 }
 
 export interface PokerData {
@@ -127,6 +130,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxSpinsPerDay: 0,
   bankrollGoal: 0,
   customNoteTags: [],
+  theme: 'dark',
 }
 
 export const DEFAULT_DATA: PokerData = {
