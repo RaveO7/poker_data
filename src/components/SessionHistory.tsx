@@ -25,6 +25,7 @@ interface SessionHistoryProps {
     id: string,
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
     spinCounts: SessionSpinCounts,
+    profit: number,
   ) => void
 }
 
@@ -35,6 +36,7 @@ interface EditForm {
   spinsPlayed: string
   spinsFinal: string
   spinsWon: string
+  profit: string
 }
 
 function sessionDurationPreview(session: Session, startTime: string, endTime: string): number {
@@ -59,6 +61,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
     spinsPlayed: '0',
     spinsFinal: '0',
     spinsWon: '0',
+    profit: '0',
   })
 
   const startEdit = (stats: (typeof sessions)[number]) => {
@@ -71,6 +74,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       spinsPlayed: String(full.spinsPlayed),
       spinsFinal: String(full.spinsFinal),
       spinsWon: String(full.spinsWon),
+      profit: String(full.profit),
     })
   }
 
@@ -83,6 +87,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       spinsPlayed: '0',
       spinsFinal: '0',
       spinsWon: '0',
+      profit: '0',
     })
   }
 
@@ -109,6 +114,12 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       return
     }
 
+    const profitValue = parseFloat(form.profit.replace(',', '.'))
+    if (Number.isNaN(profitValue)) {
+      alert('Le P&L doit être un nombre valide.')
+      return
+    }
+
     onSaveSessionEdits(
       session.id,
       {
@@ -118,6 +129,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
         ...(endIso ? { endTime: endIso } : {}),
       },
       { played, final, won },
+      profitValue,
     )
     cancelEdit()
   }
@@ -207,6 +219,19 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                     </label>
                   </div>
                   <label className="block text-sm">
+                    <span className="text-white/60">P&L session (€)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.profit}
+                      onChange={(e) => setForm((f) => ({ ...f, profit: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-white outline-none focus:border-gold"
+                    />
+                    <p className="mt-1 text-xs text-white/40">
+                      Corrige le gain/perte réel si les multiplicateurs enregistrés sont faux.
+                    </p>
+                  </label>
+                  <label className="block text-sm">
                     <span className="text-white/60">Note (optionnel)</span>
                     <input
                       type="text"
@@ -266,6 +291,9 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       </p>
                       <p className="text-xs text-white/40">
                         {s.spinsWon}W / {s.spinsFinal}F
+                        {s.session.profitOverride != null && (
+                          <span className="ml-1 text-amber-400/80">· P&L ajusté</span>
+                        )}
                       </p>
                     </div>
                     {!isHistorical && (

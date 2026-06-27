@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PokerData, Session, Settings, SpinEventType } from '../types'
 import { clearAllData, importData, loadData, persistData } from '../lib/storage'
 import { todayKey } from '../lib/date'
-import { rebuildSessionSpins, type SessionSpinCounts } from '../lib/stats'
+import { rebuildSessionSpins, getSessionComputedProfit, type SessionSpinCounts } from '../lib/stats'
 
 function createId(): string {
   return crypto.randomUUID()
@@ -127,6 +127,7 @@ export function usePokerStore() {
       id: string,
       sessionUpdates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
       spinCounts: SessionSpinCounts,
+      profit: number,
     ) => {
       update((prev) => {
         const sessions = prev.sessions.map((s) => {
@@ -137,11 +138,26 @@ export function usePokerStore() {
           }
           return next
         })
-        const withSession = { ...prev, sessions }
-        return {
-          ...withSession,
-          spins: rebuildSessionSpins(withSession, id, spinCounts),
+        const withSpins = {
+          ...prev,
+          sessions,
+          spins: rebuildSessionSpins({ ...prev, sessions }, id, spinCounts),
         }
+        const session = withSpins.sessions.find((s) => s.id === id)!
+        const computed = getSessionComputedProfit(withSpins, session)
+
+        const finalSessions = withSpins.sessions.map((s) => {
+          if (s.id !== id) return s
+          const next: Session = { ...s }
+          if (Math.abs(profit - computed) < 0.01) {
+            delete next.profitOverride
+          } else {
+            next.profitOverride = profit
+          }
+          return next
+        })
+
+        return { ...withSpins, sessions: finalSessions }
       })
     },
     [update],

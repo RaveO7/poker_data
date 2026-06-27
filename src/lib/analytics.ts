@@ -4,6 +4,7 @@ import {
   computeSpinProfitFromEvents,
   computeTournamentProfit,
   getAllDayStats,
+  getSessionProfit,
   getSpinStake,
   getSpinWinMultiplier,
 } from './stats'
@@ -251,13 +252,11 @@ function snapshotForDateRange(data: PokerData, start: Date, end: Date): PeriodSn
   const endKey = end.toISOString().slice(0, 10)
 
   const spins = data.spins.filter((s) => s.date >= startKey && s.date <= endKey)
-  const tournaments = data.tournaments.filter((t) => t.date >= startKey && t.date <= endKey)
   const sessions = data.sessions.filter((s) => s.date >= startKey && s.date <= endKey)
 
   const played = spins.filter((s) => s.type === 'played').length
   const won = spins.filter((s) => s.type === 'win').length
-  const profit =
-    computeSpinProfitFromEvents(spins, data.settings) + computeTournamentProfit(tournaments)
+  const profit = sessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
 
   const durationMs = sessions.reduce((sum, s) => {
     const startMs = new Date(s.startTime).getTime()
@@ -536,10 +535,8 @@ export function getMonthlyGoalsProgress(data: PokerData, date = new Date()): Mon
   const todayKey = date.toISOString().slice(0, 10)
   const { settings } = data
 
-  const monthSpins = data.spins.filter((s) => s.date.startsWith(monthKey))
-  const monthTournaments = data.tournaments.filter((t) => t.date.startsWith(monthKey))
-  const monthProfit =
-    computeSpinProfitFromEvents(monthSpins, settings) + computeTournamentProfit(monthTournaments)
+  const monthSessions = data.sessions.filter((s) => s.date.startsWith(monthKey))
+  const monthProfit = monthSessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
 
   const spinsToday = data.spins.filter((s) => s.date === todayKey && s.type === 'played').length
 
@@ -748,10 +745,8 @@ export function getMonthSimulation(data: PokerData, date = new Date()): MonthSim
 
   const monthKey = currentMonthKey(date)
   const monthSpins = data.spins.filter((s) => s.date.startsWith(monthKey))
-  const monthTournaments = data.tournaments.filter((t) => t.date.startsWith(monthKey))
-  const monthProfit =
-    computeSpinProfitFromEvents(monthSpins, data.settings) +
-    computeTournamentProfit(monthTournaments)
+  const monthSessions = data.sessions.filter((s) => s.date.startsWith(monthKey))
+  const monthProfit = monthSessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
 
   const played = monthSpins.filter((s) => s.type === 'played').length
   const remaining = profitGoal - monthProfit

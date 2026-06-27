@@ -32,6 +32,24 @@ export function computeTournamentProfit(tournaments: PokerData['tournaments']): 
     .reduce((sum, t) => sum + t.winnings - t.buyIn, 0)
 }
 
+export function getSessionComputedProfit(data: PokerData, session: Session): number {
+  const sessionSpins = data.spins.filter((s) => s.sessionId === session.id)
+  const sessionTournaments = data.tournaments.filter((t) => t.sessionId === session.id)
+  return (
+    computeSpinProfitFromEvents(sessionSpins, data.settings) +
+    computeTournamentProfit(sessionTournaments)
+  )
+}
+
+export function getSessionProfit(data: PokerData, session: Session): number {
+  if (session.profitOverride != null) return session.profitOverride
+  return getSessionComputedProfit(data, session)
+}
+
+export function getTotalProfit(data: PokerData): number {
+  return data.sessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
+}
+
 export function getTodayCounts(data: PokerData, date = new Date().toISOString().slice(0, 10)) {
   const todaySpins = data.spins.filter((s) => s.date === date)
   const todayTournaments = data.tournaments.filter((t) => t.date === date)
@@ -63,6 +81,11 @@ export function computeDayStats(data: PokerData, date: string): DayStats {
 
   const durationMs = daySessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
 
+  const profit =
+    daySessions.length > 0
+      ? daySessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
+      : spinProfit + tournamentProfit
+
   return {
     date,
     spinsPlayed: played,
@@ -71,7 +94,7 @@ export function computeDayStats(data: PokerData, date: string): DayStats {
     tournamentsPlayed: dayTournaments.length,
     tournamentsWon: dayTournaments.filter((t) => t.winnings > 0).length,
     durationMs,
-    profit: spinProfit + tournamentProfit,
+    profit,
   }
 }
 
@@ -83,9 +106,6 @@ export function computeSessionStats(data: PokerData, session: Session): SessionS
   const final = sessionSpins.filter((s) => s.type === 'final').length
   const won = sessionSpins.filter((s) => s.type === 'win').length
 
-  const spinProfit = computeSpinProfitFromEvents(sessionSpins, data.settings)
-  const tournamentProfit = computeTournamentProfit(sessionTournaments)
-
   return {
     session,
     spinsPlayed: played,
@@ -94,7 +114,7 @@ export function computeSessionStats(data: PokerData, session: Session): SessionS
     tournamentsPlayed: sessionTournaments.length,
     tournamentsWon: sessionTournaments.filter((t) => t.winnings > 0).length,
     durationMs: sessionDurationMs(session),
-    profit: spinProfit + tournamentProfit,
+    profit: getSessionProfit(data, session),
   }
 }
 
@@ -126,6 +146,7 @@ export function getGlobalStats(data: PokerData) {
   const spinProfit = computeSpinProfitFromEvents(data.spins, data.settings)
   const tournamentProfit = computeTournamentProfit(data.tournaments)
   const durationMs = data.sessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
+  const profit = getTotalProfit(data)
 
   return {
     played,
@@ -136,8 +157,8 @@ export function getGlobalStats(data: PokerData) {
     durationMs,
     spinProfit,
     tournamentProfit,
-    profit: spinProfit + tournamentProfit,
-    profitPerHour: profitPerHour(spinProfit + tournamentProfit, durationMs),
+    profit,
+    profitPerHour: profitPerHour(profit, durationMs),
     spinRoi: spinRoi(data.spins, data.settings),
     finalRate: played > 0 ? (final / played) * 100 : 0,
     winRate: played > 0 ? (won / played) * 100 : 0,

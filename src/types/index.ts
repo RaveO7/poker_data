@@ -34,6 +34,8 @@ export interface Session {
   endTime?: string
   isActive: boolean
   note?: string
+  /** P&L manuel si les multiplicateurs enregistrés ne reflètent pas la réalité. */
+  profitOverride?: number
 }
 
 export interface SpinEvent {

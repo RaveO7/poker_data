@@ -1,6 +1,7 @@
 import {
   computeSpinProfitFromEvents,
   computeTournamentProfit,
+  getSessionProfit,
   getSpinStake,
 } from './stats'
 import type { DayStats, PokerData, Session } from '../types'
@@ -158,6 +159,11 @@ function computeFilteredDayStats(
   const tournamentProfit = computeTournamentProfit(dayTournaments)
   const durationMs = daySessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
 
+  const useSessionProfit = filters.type === 'all' && filters.stake === 'all'
+  const profit = useSessionProfit
+    ? daySessions.reduce((sum, s) => sum + getSessionProfit(data, s), 0)
+    : spinProfit + tournamentProfit
+
   return {
     date,
     spinsPlayed: played,
@@ -166,7 +172,7 @@ function computeFilteredDayStats(
     tournamentsPlayed: dayTournaments.length,
     tournamentsWon: dayTournaments.filter((t) => t.winnings > 0).length,
     durationMs,
-    profit: spinProfit + tournamentProfit,
+    profit,
   }
 }
 
@@ -190,8 +196,10 @@ export function computeSessionStatsFiltered(
   const played = spins.filter((s) => s.type === 'played').length
   const final = spins.filter((s) => s.type === 'final').length
   const won = spins.filter((s) => s.type === 'win').length
-  const profit =
-    computeSpinProfitFromEvents(spins, data.settings) + computeTournamentProfit(tournaments)
+  const unfiltered = filters.type === 'all' && filters.stake === 'all'
+  const profit = unfiltered
+    ? getSessionProfit(data, session)
+    : computeSpinProfitFromEvents(spins, data.settings) + computeTournamentProfit(tournaments)
 
   return {
     session,

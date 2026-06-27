@@ -16,6 +16,7 @@ interface HistorySectionProps {
     id: string,
     updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
     spinCounts: SessionSpinCounts,
+    profit: number,
   ) => void
 }
 
