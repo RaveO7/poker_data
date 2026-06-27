@@ -2,6 +2,7 @@ export type SpinEventType = 'played' | 'final' | 'win'
 
 export const SPIN_STAKES = [2, 5, 10] as const
 export const SPIN_MULTIPLIERS = [2, 3, 4, 5] as const
+export const SESSION_NOTE_PRESETS = ['focus', 'fatigué', 'tilt', 'normal'] as const
 export const TOURNAMENT_STAKES = [1, 3, 5, 10] as const
 export const TOURNAMENT_TICKET_VALUE = 0
 
@@ -71,6 +72,10 @@ export interface Settings {
   sessionStopWin: number
   /** Bankroll au démarrage du suivi (point de départ de la courbe). */
   startingBankroll: number
+  /** Objectifs mensuels / journaliers (0 = désactivé). */
+  monthlyProfitGoal: number
+  monthlyLossLimit: number
+  maxSpinsPerDay: number
 }
 
 export interface PokerData {
@@ -111,6 +116,9 @@ export const DEFAULT_SETTINGS: Settings = {
   sessionStopLoss: 0,
   sessionStopWin: 0,
   startingBankroll: 900,
+  monthlyProfitGoal: 0,
+  monthlyLossLimit: 0,
+  maxSpinsPerDay: 0,
 }
 
 export const DEFAULT_DATA: PokerData = {

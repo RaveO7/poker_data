@@ -105,7 +105,7 @@ export function usePokerStore() {
   }, [update])
 
   const updateSession = useCallback(
-    (id: string, updates: Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>) => {
+    (id: string, updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>) => {
       update((prev) => ({
         ...prev,
         sessions: prev.sessions.map((s) => {

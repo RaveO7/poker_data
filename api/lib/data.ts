@@ -11,6 +11,9 @@ export interface PokerData {
     sessionStopLoss: number
     sessionStopWin: number
     startingBankroll: number
+    monthlyProfitGoal: number
+    monthlyLossLimit: number
+    maxSpinsPerDay: number
   }
 }
 
@@ -28,6 +31,9 @@ const DEFAULT_SETTINGS = {
   sessionStopLoss: 0,
   sessionStopWin: 0,
   startingBankroll: 900,
+  monthlyProfitGoal: 0,
+  monthlyLossLimit: 0,
+  maxSpinsPerDay: 0,
 }
 
 function createSpinEvents(count: number, type: string, sessionId: string, date: string) {
@@ -92,6 +98,9 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     sessionStopLoss?: number
     sessionStopWin?: number
     startingBankroll?: number
+    monthlyProfitGoal?: number
+    monthlyLossLimit?: number
+    maxSpinsPerDay?: number
   }
 
   return {
@@ -109,6 +118,9 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     sessionStopLoss: legacy.sessionStopLoss ?? DEFAULT_SETTINGS.sessionStopLoss,
     sessionStopWin: legacy.sessionStopWin ?? DEFAULT_SETTINGS.sessionStopWin,
     startingBankroll: legacy.startingBankroll ?? DEFAULT_SETTINGS.startingBankroll,
+    monthlyProfitGoal: legacy.monthlyProfitGoal ?? DEFAULT_SETTINGS.monthlyProfitGoal,
+    monthlyLossLimit: legacy.monthlyLossLimit ?? DEFAULT_SETTINGS.monthlyLossLimit,
+    maxSpinsPerDay: legacy.maxSpinsPerDay ?? DEFAULT_SETTINGS.maxSpinsPerDay,
   }
 }
 

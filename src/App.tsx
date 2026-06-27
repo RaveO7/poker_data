@@ -1,3 +1,4 @@
+import { GoalsPanel } from './components/GoalsPanel'
 import { BankrollChart } from './components/BankrollChart'
 import { ChartsPanel } from './components/ChartsPanel'
 import { GlobalStats } from './components/GlobalStats'
@@ -87,6 +88,7 @@ function App() {
           onStart={startSession}
           onEnd={endSession}
           onUndo={undoLastAction}
+          onSetNote={(id, note) => updateSession(id, { note })}
         />
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -108,6 +110,7 @@ function App() {
         <ChartsPanel data={data} />
         <InsightsPanel data={data} />
         <StatsOverview data={data} />
+        <GoalsPanel data={data} />
 
         <DailyHistory data={data} />
         <SessionHistory data={data} onUpdateSession={updateSession} />

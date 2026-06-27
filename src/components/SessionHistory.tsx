@@ -15,7 +15,7 @@ interface SessionHistoryProps {
   data: PokerData
   onUpdateSession: (
     id: string,
-    updates: Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>,
+    updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
   ) => void
 }
 

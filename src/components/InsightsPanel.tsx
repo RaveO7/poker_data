@@ -1,7 +1,12 @@
 import {
+  formatPaceInterval,
   formatProfitPerHour,
+  formatSpinsPerHour,
+  getGlobalPace,
   getMultiplierDistribution,
+  getStatsByNote,
   getStatsByStake,
+  getTodayPace,
   getTournamentAnalytics,
   getVarianceStats,
   getWeekComparison,
@@ -15,6 +20,9 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ data }: InsightsPanelProps) {
+  const todayPace = getTodayPace(data)
+  const globalPace = getGlobalPace(data)
+  const byNote = getStatsByNote(data).filter((n) => n.played > 0 || n.note !== 'Sans note')
   const byStake = getStatsByStake(data)
   const multipliers = getMultiplierDistribution(data)
   const tournaments = getTournamentAnalytics(data)
@@ -22,6 +30,9 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   const week = getWeekComparison(data)
 
   const hasData =
+    todayPace.spinsPlayed > 0 ||
+    globalPace.spinsPlayed > 0 ||
+    byNote.length > 0 ||
     byStake.length > 0 ||
     multipliers.length > 0 ||
     tournaments.total > 0 ||
@@ -39,6 +50,58 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   return (
     <Card title="🔍 Analyses détaillées">
       <div className="space-y-6">
+        {/* Rythme de jeu */}
+        {(todayPace.spinsPlayed > 0 || globalPace.spinsPlayed > 0) && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Rythme de jeu</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PaceCard label="Aujourd'hui" pace={todayPace} />
+              <PaceCard label="Global" pace={globalPace} />
+            </div>
+          </section>
+        )}
+
+        {/* Performance par note */}
+        {byNote.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Performance par contexte</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-white/50">
+                    <th className="pb-2 pr-3 font-medium">Note</th>
+                    <th className="pb-2 pr-3 font-medium">Sessions</th>
+                    <th className="pb-2 pr-3 font-medium">Win %</th>
+                    <th className="pb-2 pr-3 font-medium">Spins/h</th>
+                    <th className="pb-2 pr-3 font-medium">€/h</th>
+                    <th className="pb-2 font-medium">P&L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byNote.map((n) => (
+                    <tr key={n.note} className="border-b border-white/5">
+                      <td className="py-2 pr-3 font-medium capitalize">{n.note}</td>
+                      <td className="py-2 pr-3 tabular-nums">{n.sessions}</td>
+                      <td className="py-2 pr-3 tabular-nums">{n.winRate.toFixed(1)}%</td>
+                      <td className="py-2 pr-3 tabular-nums text-sky-400">
+                        {formatSpinsPerHour(n.spinsPerHour)}
+                      </td>
+                      <td className="py-2 pr-3 tabular-nums text-sky-400">
+                        {formatProfitPerHour(n.profitPerHour)}
+                      </td>
+                      <td
+                        className={`py-2 tabular-nums font-semibold ${n.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                      >
+                        {formatMoney(n.profit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {/* Comparaison semaine */}
         <section>
           <h3 className="mb-3 text-sm font-semibold text-white/70">Comparaison hebdomadaire</h3>
@@ -189,6 +252,27 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
         </section>
       </div>
     </Card>
+  )
+}
+
+function PaceCard({
+  label,
+  pace,
+}: {
+  label: string
+  pace: ReturnType<typeof getTodayPace>
+}) {
+  return (
+    <div className="rounded-xl bg-black/25 px-4 py-3">
+      <p className="text-xs text-white/50">{label}</p>
+      <p className="mt-1 text-lg font-bold tabular-nums text-sky-400">
+        {formatSpinsPerHour(pace.spinsPerHour)}
+      </p>
+      <p className="mt-1 text-sm text-white/50">
+        {pace.spinsPlayed} spins · intervalle moy.{' '}
+        {formatPaceInterval(pace.avgSecondsBetweenSpins)}
+      </p>
+    </div>
   )
 }
 

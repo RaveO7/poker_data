@@ -20,6 +20,9 @@ function migrateSettings(raw = {}) {
     sessionStopLoss: raw.sessionStopLoss ?? 0,
     sessionStopWin: raw.sessionStopWin ?? 0,
     startingBankroll: raw.startingBankroll ?? 900,
+    monthlyProfitGoal: raw.monthlyProfitGoal ?? 0,
+    monthlyLossLimit: raw.monthlyLossLimit ?? 0,
+    maxSpinsPerDay: raw.maxSpinsPerDay ?? 0,
   }
 }
 

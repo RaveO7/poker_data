@@ -105,6 +105,30 @@ export function SettingsPanel({ data, onUpdate, onReset, onImport, onReload }: S
             </div>
           </div>
 
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-3 text-sm font-medium text-white/70">Objectifs mensuels / journaliers</p>
+            <p className="mb-3 text-xs text-white/40">
+              Mettez 0 pour désactiver. Une barre de progression s&apos;affiche sur le tableau de bord.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <GoalInput
+                label="Profit mensuel cible (€)"
+                value={data.settings.monthlyProfitGoal}
+                onChange={(v) => onUpdate({ monthlyProfitGoal: v })}
+              />
+              <GoalInput
+                label="Perte max mensuelle (€)"
+                value={data.settings.monthlyLossLimit}
+                onChange={(v) => onUpdate({ monthlyLossLimit: v })}
+              />
+              <GoalInput
+                label="Spins max / jour"
+                value={data.settings.maxSpinsPerDay}
+                onChange={(v) => onUpdate({ maxSpinsPerDay: v })}
+              />
+            </div>
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"

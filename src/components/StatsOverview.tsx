@@ -1,5 +1,10 @@
+import {
+  formatProfitPerHour,
+  formatSpinsPerHour,
+  getTodayPace,
+  profitPerHour,
+} from '../lib/analytics'
 import { formatDuration, formatMoney } from '../lib/date'
-import { formatProfitPerHour, profitPerHour } from '../lib/analytics'
 import { computeDayStats, getTodayCounts } from '../lib/stats'
 import type { PokerData } from '../types'
 import { Card, StatBox } from './ui'
@@ -12,6 +17,7 @@ export function StatsOverview({ data }: StatsOverviewProps) {
   const today = new Date().toISOString().slice(0, 10)
   const dayStats = computeDayStats(data, today)
   const counts = getTodayCounts(data)
+  const pace = getTodayPace(data)
   const pph = profitPerHour(dayStats.profit, dayStats.durationMs)
 
   const totalGames = counts.played + counts.tournaments
@@ -43,8 +49,8 @@ export function StatsOverview({ data }: StatsOverviewProps) {
           <p className="font-bold text-emerald-400">{dayStats.spinsWon}</p>
         </div>
         <div className="text-center text-sm">
-          <p className="text-white/50">Tournois</p>
-          <p className="font-bold">{dayStats.tournamentsPlayed}</p>
+          <p className="text-white/50">Rythme</p>
+          <p className="font-bold text-sky-400">{formatSpinsPerHour(pace.spinsPerHour)}</p>
         </div>
       </div>
     </Card>

@@ -355,3 +355,241 @@ export function formatProfitPerHour(value: number | null): string {
   const sign = value >= 0 ? '+' : ''
   return `${sign}${value.toFixed(1)} €/h`
 }
+
+const MAX_GAP_BETWEEN_SPINS_SEC = 20 * 60
+
+export interface PaceStats {
+  spinsPlayed: number
+  durationMs: number
+  spinsPerHour: number | null
+  avgSecondsBetweenSpins: number | null
+}
+
+export function formatSpinsPerHour(value: number | null): string {
+  if (value == null) return '—'
+  return `${value.toFixed(1)} spins/h`
+}
+
+export function formatPaceInterval(seconds: number | null): string {
+  if (seconds == null) return '—'
+  if (seconds < 60) return `${Math.round(seconds)} s`
+  const min = Math.floor(seconds / 60)
+  const sec = Math.round(seconds % 60)
+  return sec > 0 ? `${min} min ${sec} s` : `${min} min`
+}
+
+function averageSecondsBetweenPlays(playedSpins: SpinEvent[]): number | null {
+  if (playedSpins.length < 2) return null
+  const sorted = [...playedSpins].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+  let total = 0
+  let count = 0
+  for (let i = 1; i < sorted.length; i++) {
+    const gap =
+      (new Date(sorted[i].timestamp).getTime() - new Date(sorted[i - 1].timestamp).getTime()) / 1000
+    if (gap > 0 && gap <= MAX_GAP_BETWEEN_SPINS_SEC) {
+      total += gap
+      count += 1
+    }
+  }
+  return count > 0 ? total / count : null
+}
+
+export function computePaceStats(spins: SpinEvent[], durationMs: number): PaceStats {
+  const playedSpins = spins.filter((s) => s.type === 'played')
+  const spinsPerHour =
+    durationMs > 0 && playedSpins.length > 0
+      ? playedSpins.length / (durationMs / 3_600_000)
+      : null
+  return {
+    spinsPlayed: playedSpins.length,
+    durationMs,
+    spinsPerHour,
+    avgSecondsBetweenSpins: averageSecondsBetweenPlays(playedSpins),
+  }
+}
+
+function sessionDurationMs(session: PokerData['sessions'][0], now = Date.now()): number {
+  const start = new Date(session.startTime).getTime()
+  const end = session.endTime ? new Date(session.endTime).getTime() : now
+  return Math.max(0, end - start)
+}
+
+export function getActiveSessionPace(data: PokerData): PaceStats | null {
+  const active = data.sessions.find((s) => s.isActive)
+  if (!active) return null
+  const spins = data.spins.filter((s) => s.sessionId === active.id)
+  return computePaceStats(spins, sessionDurationMs(active))
+}
+
+export function getTodayPace(data: PokerData): PaceStats {
+  const today = new Date().toISOString().slice(0, 10)
+  const spins = data.spins.filter((s) => s.date === today)
+  const sessions = data.sessions.filter((s) => s.date === today)
+  const durationMs = sessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
+  return computePaceStats(spins, durationMs)
+}
+
+export function getGlobalPace(data: PokerData): PaceStats {
+  const durationMs = data.sessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
+  return computePaceStats(data.spins, durationMs)
+}
+
+export interface NoteStats {
+  note: string
+  sessions: number
+  played: number
+  won: number
+  profit: number
+  durationMs: number
+  winRate: number
+  roi: number | null
+  profitPerHour: number | null
+  spinsPerHour: number | null
+}
+
+function normalizeNote(note?: string): string {
+  const trimmed = note?.trim()
+  return trimmed ? trimmed.toLowerCase() : 'Sans note'
+}
+
+export function getStatsByNote(data: PokerData): NoteStats[] {
+  const groups = new Map<string, string[]>()
+
+  for (const session of data.sessions) {
+    const label = normalizeNote(session.note)
+    const ids = groups.get(label) ?? []
+    ids.push(session.id)
+    groups.set(label, ids)
+  }
+
+  return [...groups.entries()]
+    .map(([note, sessionIds]) => {
+      const spins = data.spins.filter((s) => sessionIds.includes(s.sessionId))
+      const tournaments = data.tournaments.filter((t) => sessionIds.includes(t.sessionId))
+      const sessions = data.sessions.filter((s) => sessionIds.includes(s.id))
+      const played = spins.filter((s) => s.type === 'played').length
+      const won = spins.filter((s) => s.type === 'win').length
+      const profit =
+        computeSpinProfitFromEvents(spins, data.settings) + computeTournamentProfit(tournaments)
+      const durationMs = sessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
+      const pace = computePaceStats(spins, durationMs)
+      return {
+        note,
+        sessions: sessions.length,
+        played,
+        won,
+        profit,
+        durationMs,
+        winRate: played > 0 ? (won / played) * 100 : 0,
+        roi: spinRoi(spins, data.settings),
+        profitPerHour: profitPerHour(profit, durationMs),
+        spinsPerHour: pace.spinsPerHour,
+      }
+    })
+    .filter((n) => n.sessions > 0)
+    .sort((a, b) => b.sessions - a.sessions)
+}
+
+const MONTH_NAMES_FR = [
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+]
+
+function currentMonthKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function formatMonthLabel(date = new Date()): string {
+  return `${MONTH_NAMES_FR[date.getMonth()]} ${date.getFullYear()}`
+}
+
+export interface MonthlyGoalsProgress {
+  monthLabel: string
+  monthProfit: number
+  spinsToday: number
+  profitGoal: number
+  lossLimit: number
+  maxSpinsPerDay: number
+  profitGoalEnabled: boolean
+  lossLimitEnabled: boolean
+  maxSpinsEnabled: boolean
+  profitGoalPercent: number | null
+  lossLimitPercent: number | null
+  spinsTodayPercent: number | null
+  profitGoalReached: boolean
+  lossLimitReached: boolean
+  spinsLimitReached: boolean
+}
+
+export function getMonthlyGoalsProgress(data: PokerData, date = new Date()): MonthlyGoalsProgress {
+  const monthKey = currentMonthKey(date)
+  const todayKey = date.toISOString().slice(0, 10)
+  const { settings } = data
+
+  const monthSpins = data.spins.filter((s) => s.date.startsWith(monthKey))
+  const monthTournaments = data.tournaments.filter((t) => t.date.startsWith(monthKey))
+  const monthProfit =
+    computeSpinProfitFromEvents(monthSpins, settings) + computeTournamentProfit(monthTournaments)
+
+  const spinsToday = data.spins.filter((s) => s.date === todayKey && s.type === 'played').length
+
+  const profitGoal = settings.monthlyProfitGoal ?? 0
+  const lossLimit = settings.monthlyLossLimit ?? 0
+  const maxSpins = settings.maxSpinsPerDay ?? 0
+
+  const profitGoalEnabled = profitGoal > 0
+  const lossLimitEnabled = lossLimit > 0
+  const maxSpinsEnabled = maxSpins > 0
+
+  const profitGoalPercent =
+    profitGoalEnabled && monthProfit > 0
+      ? Math.min(100, (monthProfit / profitGoal) * 100)
+      : profitGoalEnabled
+        ? 0
+        : null
+
+  const lossLimitPercent =
+    lossLimitEnabled && monthProfit < 0
+      ? Math.min(100, (Math.abs(monthProfit) / lossLimit) * 100)
+      : lossLimitEnabled
+        ? 0
+        : null
+
+  const spinsTodayPercent = maxSpinsEnabled ? Math.min(100, (spinsToday / maxSpins) * 100) : null
+
+  return {
+    monthLabel: formatMonthLabel(date),
+    monthProfit,
+    spinsToday,
+    profitGoal,
+    lossLimit,
+    maxSpinsPerDay: maxSpins,
+    profitGoalEnabled,
+    lossLimitEnabled,
+    maxSpinsEnabled,
+    profitGoalPercent,
+    lossLimitPercent,
+    spinsTodayPercent,
+    profitGoalReached: profitGoalEnabled && monthProfit >= profitGoal,
+    lossLimitReached: lossLimitEnabled && monthProfit <= -lossLimit,
+    spinsLimitReached: maxSpinsEnabled && spinsToday >= maxSpins,
+  }
+}
+
+export function hasMonthlyGoals(settings: Settings): boolean {
+  return (
+    (settings.monthlyProfitGoal ?? 0) > 0 ||
+    (settings.monthlyLossLimit ?? 0) > 0 ||
+    (settings.maxSpinsPerDay ?? 0) > 0
+  )
+}

@@ -1,8 +1,15 @@
 import type { ReactNode } from 'react'
 import { formatDuration, formatMoney } from '../lib/date'
-import { checkSessionGoals, formatProfitPerHour, profitPerHour } from '../lib/analytics'
+import {
+  checkSessionGoals,
+  formatPaceInterval,
+  formatProfitPerHour,
+  formatSpinsPerHour,
+  getActiveSessionPace,
+  profitPerHour,
+} from '../lib/analytics'
 import { computeSessionStats, getActiveSession } from '../lib/stats'
-import type { PokerData } from '../types'
+import { SESSION_NOTE_PRESETS, type PokerData } from '../types'
 import { ActionButton, StatBox } from './ui'
 
 interface SessionBarProps {
@@ -11,13 +18,15 @@ interface SessionBarProps {
   onStart: () => void
   onEnd: () => void
   onUndo: () => void
+  onSetNote: (sessionId: string, note: string) => void
 }
 
-export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarProps) {
+export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: SessionBarProps) {
   const active = getActiveSession(data)
   void tick
 
   const stats = active ? computeSessionStats(data, active) : null
+  const pace = getActiveSessionPace(data)
   const alerts =
     active && stats ? checkSessionGoals(data.settings, stats.durationMs, stats.profit) : null
   const pph = stats ? profitPerHour(stats.profit, stats.durationMs) : null
@@ -29,6 +38,8 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarPro
 
   const hasUndo =
     activeSessionEmpty || data.spins.length > 0 || data.tournaments.length > 0
+
+  const activeNote = active?.note?.trim().toLowerCase()
 
   return (
     <div className="rounded-2xl border border-gold/30 bg-gradient-to-r from-felt to-felt-light p-5">
@@ -42,7 +53,9 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarPro
             {active ? (
               <>
                 {formatProfitPerHour(pph)}
-                {active.note && <span className="ml-2 text-white/40">· {active.note}</span>}
+                {pace?.spinsPerHour != null && (
+                  <span className="ml-2">· {formatSpinsPerHour(pace.spinsPerHour)}</span>
+                )}
               </>
             ) : (
               'Aucune session active'
@@ -68,6 +81,28 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarPro
         </div>
       </div>
 
+      {active && (
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-white/50">Contexte de session</p>
+          <div className="flex flex-wrap gap-2">
+            {SESSION_NOTE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => onSetNote(active.id, preset)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
+                  activeNote === preset
+                    ? 'bg-gold text-felt-dark ring-2 ring-gold-light'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {alerts &&
         (alerts.maxDurationReached || alerts.stopLossReached || alerts.stopWinReached) && (
           <div className="mt-4 space-y-2">
@@ -92,7 +127,7 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarPro
         )}
 
       {active && stats && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatBox label="Spins" value={stats.spinsPlayed} />
           <StatBox label="Finales" value={stats.spinsFinal} />
           <StatBox label="Victoires" value={stats.spinsWon} accent="green" />
@@ -102,7 +137,18 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo }: SessionBarPro
             accent={stats.profit >= 0 ? 'green' : 'red'}
           />
           <StatBox label="€ / heure" value={formatProfitPerHour(pph)} accent="blue" />
+          <StatBox
+            label="Rythme"
+            value={formatSpinsPerHour(pace?.spinsPerHour ?? null)}
+            accent="blue"
+          />
         </div>
+      )}
+
+      {active && pace && pace.avgSecondsBetweenSpins != null && (
+        <p className="mt-3 text-center text-xs text-white/40">
+          Temps moyen entre deux spins : {formatPaceInterval(pace.avgSecondsBetweenSpins)}
+        </p>
       )}
     </div>
   )

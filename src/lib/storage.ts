@@ -17,6 +17,9 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     sessionStopLoss?: number
     sessionStopWin?: number
     startingBankroll?: number
+    monthlyProfitGoal?: number
+    monthlyLossLimit?: number
+    maxSpinsPerDay?: number
   }
 
   return {
@@ -34,6 +37,9 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     sessionStopLoss: legacy.sessionStopLoss ?? DEFAULT_DATA.settings.sessionStopLoss,
     sessionStopWin: legacy.sessionStopWin ?? DEFAULT_DATA.settings.sessionStopWin,
     startingBankroll: legacy.startingBankroll ?? DEFAULT_DATA.settings.startingBankroll,
+    monthlyProfitGoal: legacy.monthlyProfitGoal ?? DEFAULT_DATA.settings.monthlyProfitGoal,
+    monthlyLossLimit: legacy.monthlyLossLimit ?? DEFAULT_DATA.settings.monthlyLossLimit,
+    maxSpinsPerDay: legacy.maxSpinsPerDay ?? DEFAULT_DATA.settings.maxSpinsPerDay,
   }
 }
 

@@ -19,6 +19,9 @@ const DEFAULT_SETTINGS = {
   sessionStopLoss: 0,
   sessionStopWin: 0,
   startingBankroll: 900,
+  monthlyProfitGoal: 0,
+  monthlyLossLimit: 0,
+  maxSpinsPerDay: 0,
 }
 
 function createSpinEvents(count, type, sessionId, date) {
