@@ -14,7 +14,7 @@ interface HistorySectionProps {
   data: PokerData
   onSaveSessionEdits: (
     id: string,
-    updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+    updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note' | 'device'>>,
     spinCounts: SessionSpinCounts,
     profit: number,
     winMultipliers: number[],

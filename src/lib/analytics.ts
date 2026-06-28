@@ -8,8 +8,8 @@ import {
   getSpinStake,
   getSpinWinMultiplier,
 } from './stats'
-import type { PokerData, Settings, SpinEvent, Tournament } from '../types'
-import { SPIN_MULTIPLIERS, SPIN_STAKES } from '../types'
+import type { PokerData, Settings, SpinEvent, Tournament, SessionDevice } from '../types'
+import { DEVICE_LABELS, SESSION_DEVICES, SPIN_MULTIPLIERS, SPIN_STAKES } from '../types'
 
 export function profitPerHour(profit: number, durationMs: number): number | null {
   if (durationMs <= 0) return null
@@ -487,6 +487,62 @@ export function getStatsByNote(data: PokerData): NoteStats[] {
     })
     .filter((n) => n.sessions > 0)
     .sort((a, b) => b.sessions - a.sessions)
+}
+
+export interface DeviceStats {
+  device: SessionDevice | 'unknown'
+  label: string
+  sessions: number
+  played: number
+  won: number
+  profit: number
+  durationMs: number
+  winRate: number
+  roi: number | null
+  profitPerHour: number | null
+  spinsPerHour: number | null
+}
+
+export function getStatsByDevice(data: PokerData): DeviceStats[] {
+  const groups = new Map<SessionDevice | 'unknown', string[]>()
+
+  for (const session of data.sessions) {
+    const key = session.device ?? 'unknown'
+    const ids = groups.get(key) ?? []
+    ids.push(session.id)
+    groups.set(key, ids)
+  }
+
+  const order: (SessionDevice | 'unknown')[] = [...SESSION_DEVICES, 'unknown']
+
+  return order
+    .filter((key) => groups.has(key))
+    .map((key) => {
+      const sessionIds = groups.get(key)!
+      const spins = data.spins.filter((s) => sessionIds.includes(s.sessionId))
+      const tournaments = data.tournaments.filter((t) => sessionIds.includes(t.sessionId))
+      const sessions = data.sessions.filter((s) => sessionIds.includes(s.id))
+      const played = spins.filter((s) => s.type === 'played').length
+      const won = spins.filter((s) => s.type === 'win').length
+      const profit =
+        computeSpinProfitFromEvents(spins, data.settings) + computeTournamentProfit(tournaments)
+      const durationMs = sessions.reduce((sum, s) => sum + sessionDurationMs(s), 0)
+      const pace = computePaceStats(spins, durationMs)
+      return {
+        device: key,
+        label: key === 'unknown' ? 'Non renseigné' : DEVICE_LABELS[key],
+        sessions: sessions.length,
+        played,
+        won,
+        profit,
+        durationMs,
+        winRate: played > 0 ? (won / played) * 100 : 0,
+        roi: spinRoi(spins, data.settings),
+        profitPerHour: profitPerHour(profit, durationMs),
+        spinsPerHour: pace.spinsPerHour,
+      }
+    })
+    .filter((d) => d.sessions > 0)
 }
 
 const MONTH_NAMES_FR = [

@@ -21,7 +21,7 @@ import {
 import type { SessionSpinCounts } from '../lib/stats'
 import type { Session } from '../types'
 import type { PokerData } from '../types'
-import { SPIN_MULTIPLIERS } from '../types'
+import { DEVICE_LABELS, SESSION_DEVICES, SPIN_MULTIPLIERS } from '../types'
 import { Card } from './ui'
 
 interface SessionHistoryProps {
@@ -29,7 +29,7 @@ interface SessionHistoryProps {
   filters: HistoryFilterState
   onSaveSessionEdits: (
     id: string,
-    updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+    updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note' | 'device'>>,
     spinCounts: SessionSpinCounts,
     profit: number,
     winMultipliers: number[],
@@ -40,6 +40,7 @@ interface EditForm {
   startTime: string
   endTime: string
   note: string
+  device?: Session['device']
   spinsPlayed: string
   spinsFinal: string
   spinsWon: string
@@ -82,6 +83,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
     startTime: '',
     endTime: '',
     note: '',
+    device: undefined,
     spinsPlayed: '0',
     spinsFinal: '0',
     spinsWon: '0',
@@ -102,6 +104,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       startTime: toDatetimeLocalValue(stats.session.startTime),
       endTime: stats.session.endTime ? toDatetimeLocalValue(stats.session.endTime) : '',
       note: stats.session.note ?? '',
+      device: stats.session.device,
       spinsPlayed: String(full.spinsPlayed),
       spinsFinal: String(full.spinsFinal),
       spinsWon: String(full.spinsWon),
@@ -187,6 +190,7 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
         date: startIso.slice(0, 10),
         startTime: startIso,
         note: form.note.trim() || undefined,
+        device: form.device,
         ...(endIso ? { endTime: endIso } : {}),
       },
       { played, final, won },
@@ -335,6 +339,25 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       Ajustez manuellement seulement si le P&L réel diffère du calcul spins.
                     </p>
                   </label>
+                  <div>
+                    <p className="mb-2 text-xs text-white/60">Support de jeu</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SESSION_DEVICES.map((device) => (
+                        <button
+                          key={device}
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, device }))}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                            form.device === device
+                              ? 'bg-sky-500 text-white ring-2 ring-sky-300'
+                              : 'bg-white/10 text-white/80 hover:bg-white/20'
+                          }`}
+                        >
+                          {DEVICE_LABELS[device]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="block text-sm">
                     <span className="text-white/60">Note (optionnel)</span>
                     <input
@@ -379,6 +402,11 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       {formatProfitPerHour(profitPerHour(s.profit, s.durationMs)) !== '—' && (
                         <span className="ml-1 text-sky-400/80">
                           · {formatProfitPerHour(profitPerHour(s.profit, s.durationMs))}
+                        </span>
+                      )}
+                      {s.session.device && (
+                        <span className="ml-1 rounded bg-sky-500/20 px-1.5 py-0.5 text-xs text-sky-300">
+                          {DEVICE_LABELS[s.session.device]}
                         </span>
                       )}
                       {s.session.note && (

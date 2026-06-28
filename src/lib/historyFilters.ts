@@ -4,23 +4,26 @@ import {
   getSessionProfit,
   getSpinStake,
 } from './stats'
-import type { DayStats, PokerData, Session } from '../types'
+import type { DayStats, PokerData, Session, SessionDevice } from '../types'
 import { SPIN_STAKES } from '../types'
 
 export type HistoryDateRange = 'all' | '7d' | '30d' | '90d'
 export type HistoryTypeFilter = 'all' | 'spin' | 'tournament'
 export type HistoryStakeFilter = 'all' | number
+export type HistoryDeviceFilter = 'all' | SessionDevice
 
 export interface HistoryFilterState {
   dateRange: HistoryDateRange
   type: HistoryTypeFilter
   stake: HistoryStakeFilter
+  device: HistoryDeviceFilter
 }
 
 export const DEFAULT_HISTORY_FILTERS: HistoryFilterState = {
   dateRange: 'all',
   type: 'all',
   stake: 'all',
+  device: 'all',
 }
 
 export const DATE_RANGE_LABELS: Record<HistoryDateRange, string> = {
@@ -83,6 +86,7 @@ export function filterSessions(data: PokerData, filters: HistoryFilterState): Se
     if (filters.type === 'spin' && spins.length === 0) return false
     if (filters.type === 'tournament' && tournaments.length === 0) return false
     if (filters.stake !== 'all' && filters.type !== 'tournament' && spins.length === 0) return false
+    if (filters.device !== 'all' && session.device !== filters.device) return false
 
     return true
   })

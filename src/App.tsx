@@ -25,6 +25,7 @@ function App() {
     startSession,
     endSession,
     updateSession,
+    setSessionDevice,
     saveSessionEdits,
     undoLastAction,
     addSpin,
@@ -104,6 +105,7 @@ function App() {
           onEnd={endSession}
           onUndo={undoLastAction}
           onSetNote={(id, note) => updateSession(id, { note })}
+          onSetDevice={setSessionDevice}
         />
 
         <div className="grid gap-6 lg:grid-cols-2">

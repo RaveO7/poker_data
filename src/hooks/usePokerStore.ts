@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PokerData, Session, Settings, SpinEventType } from '../types'
+import type { PokerData, Session, Settings, SpinEventType, SessionDevice } from '../types'
 import { clearAllData, importData, loadData, persistData } from '../lib/storage'
 import { todayKey } from '../lib/date'
 import { rebuildSessionSpins, getSessionComputedProfit, type SessionSpinCounts } from '../lib/stats'
@@ -11,11 +11,12 @@ function createId(): string {
 function ensureActiveSession(data: PokerData): PokerData {
   if (data.sessions.some((s) => s.isActive)) return data
 
-  const session = {
+  const session: Session = {
     id: createId(),
     date: todayKey(),
     startTime: new Date().toISOString(),
     isActive: true,
+    ...(data.settings.selectedDevice ? { device: data.settings.selectedDevice } : {}),
   }
 
   return { ...data, sessions: [session, ...data.sessions] }
@@ -86,11 +87,12 @@ export function usePokerStore() {
       const ended = prev.sessions.map((s) =>
         s.isActive ? { ...s, isActive: false, endTime: new Date().toISOString() } : s,
       )
-      const session = {
+      const session: Session = {
         id: createId(),
         date: todayKey(),
         startTime: new Date().toISOString(),
         isActive: true,
+        ...(prev.settings.selectedDevice ? { device: prev.settings.selectedDevice } : {}),
       }
       return { ...prev, sessions: [session, ...ended] }
     })
@@ -106,7 +108,7 @@ export function usePokerStore() {
   }, [update])
 
   const updateSession = useCallback(
-    (id: string, updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>) => {
+    (id: string, updates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note' | 'device'>>) => {
       update((prev) => ({
         ...prev,
         sessions: prev.sessions.map((s) => {
@@ -125,7 +127,7 @@ export function usePokerStore() {
   const saveSessionEdits = useCallback(
     (
       id: string,
-      sessionUpdates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note'>>,
+      sessionUpdates: Partial<Pick<Session, 'date' | 'startTime' | 'endTime' | 'note' | 'device'>>,
       spinCounts: SessionSpinCounts,
       profit: number,
       winMultipliers: number[],
@@ -267,6 +269,17 @@ export function usePokerStore() {
     [update],
   )
 
+  const setSessionDevice = useCallback(
+    (sessionId: string, device: SessionDevice) => {
+      update((prev) => ({
+        ...prev,
+        settings: { ...prev.settings, selectedDevice: device },
+        sessions: prev.sessions.map((s) => (s.id === sessionId ? { ...s, device } : s)),
+      }))
+    },
+    [update],
+  )
+
   const updateSettings = useCallback(
     (settings: Partial<Settings>) => {
       update((prev) => ({
@@ -310,6 +323,7 @@ export function usePokerStore() {
     startSession,
     endSession,
     updateSession,
+    setSessionDevice,
     saveSessionEdits,
     undoLastAction,
     addSpin,

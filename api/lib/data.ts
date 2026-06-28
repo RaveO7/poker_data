@@ -16,6 +16,7 @@ export interface PokerData {
     maxSpinsPerDay: number
     bankrollGoal: number
     customNoteTags: string[]
+    selectedDevice?: 'ordi' | 'phone'
     theme: 'dark' | 'light'
   }
 }
@@ -109,6 +110,7 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     maxSpinsPerDay?: number
     bankrollGoal?: number
     customNoteTags?: string[]
+    selectedDevice?: string
     theme?: string
   }
 
@@ -134,6 +136,10 @@ export function migrateSettings(raw: Record<string, unknown> = {}) {
     customNoteTags: Array.isArray(legacy.customNoteTags)
       ? legacy.customNoteTags
       : DEFAULT_SETTINGS.customNoteTags,
+    selectedDevice:
+      legacy.selectedDevice === 'ordi' || legacy.selectedDevice === 'phone'
+        ? legacy.selectedDevice
+        : undefined,
     theme: legacy.theme === 'light' ? 'light' : DEFAULT_SETTINGS.theme,
   }
 }

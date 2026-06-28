@@ -9,6 +9,7 @@ import {
   getMultiplierDistribution,
   getSessionDurationInsights,
   getStatsByNote,
+  getStatsByDevice,
   getStatsByStake,
   getTodayPace,
   getTournamentAbi,
@@ -28,6 +29,7 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
   const todayPace = getTodayPace(data)
   const globalPace = getGlobalPace(data)
   const byNote = getStatsByNote(data).filter((n) => n.played > 0 || n.note !== 'Sans note')
+  const byDevice = getStatsByDevice(data).filter((d) => d.device !== 'unknown' || d.played > 0)
   const byStake = getStatsByStake(data)
   const multipliers = getMultiplierDistribution(data)
   const tournaments = getTournamentAnalytics(data)
@@ -53,6 +55,7 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
     todayPace.spinsPlayed > 0 ||
     globalPace.spinsPlayed > 0 ||
     byNote.length > 0 ||
+    byDevice.length > 0 ||
     byStake.length > 0 ||
     multipliers.length > 0 ||
     tournaments.total > 0 ||
@@ -77,6 +80,47 @@ export function InsightsPanel({ data }: InsightsPanelProps) {
             <div className="grid gap-3 sm:grid-cols-2">
               <PaceCard label="Aujourd'hui" pace={todayPace} />
               <PaceCard label="Global" pace={globalPace} />
+            </div>
+          </section>
+        )}
+
+        {/* Performance par support */}
+        {byDevice.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-white/70">Performance par support</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-white/50">
+                    <th className="pb-2 pr-3 font-medium">Support</th>
+                    <th className="pb-2 pr-3 font-medium">Sessions</th>
+                    <th className="pb-2 pr-3 font-medium">Win %</th>
+                    <th className="pb-2 pr-3 font-medium">Spins/h</th>
+                    <th className="pb-2 pr-3 font-medium">€/h</th>
+                    <th className="pb-2 font-medium">P&L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byDevice.map((d) => (
+                    <tr key={d.device} className="border-b border-white/5">
+                      <td className="py-2 pr-3 font-medium">{d.label}</td>
+                      <td className="py-2 pr-3 tabular-nums">{d.sessions}</td>
+                      <td className="py-2 pr-3 tabular-nums">{d.winRate.toFixed(1)}%</td>
+                      <td className="py-2 pr-3 tabular-nums text-sky-400">
+                        {formatSpinsPerHour(d.spinsPerHour)}
+                      </td>
+                      <td className="py-2 pr-3 tabular-nums text-sky-400">
+                        {formatProfitPerHour(d.profitPerHour)}
+                      </td>
+                      <td
+                        className={`py-2 tabular-nums font-semibold ${d.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                      >
+                        {formatMoney(d.profit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}

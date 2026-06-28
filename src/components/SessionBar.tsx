@@ -9,7 +9,7 @@ import {
   profitPerHour,
 } from '../lib/analytics'
 import { computeSessionStats, getActiveSession } from '../lib/stats'
-import { getAllNoteTags, type PokerData } from '../types'
+import { getAllNoteTags, SESSION_DEVICES, DEVICE_LABELS, type PokerData, type SessionDevice } from '../types'
 import { ActionButton, StatBox } from './ui'
 
 interface SessionBarProps {
@@ -19,9 +19,10 @@ interface SessionBarProps {
   onEnd: () => void
   onUndo: () => void
   onSetNote: (sessionId: string, note: string) => void
+  onSetDevice: (sessionId: string, device: SessionDevice) => void
 }
 
-export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: SessionBarProps) {
+export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote, onSetDevice }: SessionBarProps) {
   const active = getActiveSession(data)
   void tick
 
@@ -83,10 +84,30 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: Se
       </div>
 
       {active && (
-        <div className="mt-3">
-          <p className="mb-2 text-xs text-white/50">Contexte de session</p>
-          <div className="flex flex-wrap gap-2">
-            {noteTags.map((preset) => (
+        <div className="mt-3 space-y-3">
+          <div>
+            <p className="mb-2 text-xs text-white/50">Support de jeu</p>
+            <div className="flex flex-wrap gap-2">
+              {SESSION_DEVICES.map((device) => (
+                <button
+                  key={device}
+                  type="button"
+                  onClick={() => onSetDevice(active.id, device)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    active.device === device
+                      ? 'bg-sky-500 text-white ring-2 ring-sky-300'
+                      : 'bg-white/10 text-white/80 hover:bg-white/20'
+                  }`}
+                >
+                  {DEVICE_LABELS[device]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs text-white/50">Contexte de session</p>
+            <div className="flex flex-wrap gap-2">
+              {noteTags.map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -100,6 +121,7 @@ export function SessionBar({ data, tick, onStart, onEnd, onUndo, onSetNote }: Se
                 {preset}
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}

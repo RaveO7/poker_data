@@ -22,6 +22,7 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     maxSpinsPerDay?: number
     bankrollGoal?: number
     customNoteTags?: string[]
+    selectedDevice?: 'ordi' | 'phone'
     theme?: 'dark' | 'light'
   }
 
@@ -47,6 +48,10 @@ function migrateSettings(raw: Record<string, unknown>): Settings {
     customNoteTags: Array.isArray(legacy.customNoteTags)
       ? legacy.customNoteTags
       : DEFAULT_DATA.settings.customNoteTags,
+    selectedDevice:
+      legacy.selectedDevice === 'ordi' || legacy.selectedDevice === 'phone'
+        ? legacy.selectedDevice
+        : undefined,
     theme: legacy.theme === 'light' ? 'light' : DEFAULT_DATA.settings.theme,
   }
 }

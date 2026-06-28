@@ -3,11 +3,12 @@ import {
   DEFAULT_HISTORY_FILTERS,
   TYPE_FILTER_LABELS,
   type HistoryDateRange,
+  type HistoryDeviceFilter,
   type HistoryFilterState,
   type HistoryStakeFilter,
   type HistoryTypeFilter,
 } from '../lib/historyFilters'
-import { SPIN_STAKES } from '../types'
+import { DEVICE_LABELS, SESSION_DEVICES, SPIN_STAKES } from '../types'
 
 interface HistoryFiltersProps {
   filters: HistoryFilterState
@@ -47,7 +48,22 @@ export function HistoryFilters({ filters, availableStakes, onChange }: HistoryFi
         value={filters.stake}
         onChange={(stake) => onChange({ ...filters, stake })}
       />
-      {(filters.dateRange !== 'all' || filters.type !== 'all' || filters.stake !== 'all') && (
+      <FilterGroup
+        label="Support"
+        options={[
+          { value: 'all' as const, label: 'Tous' },
+          ...SESSION_DEVICES.map((d) => ({
+            value: d as HistoryDeviceFilter,
+            label: DEVICE_LABELS[d],
+          })),
+        ]}
+        value={filters.device}
+        onChange={(device) => onChange({ ...filters, device })}
+      />
+      {(filters.dateRange !== 'all' ||
+        filters.type !== 'all' ||
+        filters.stake !== 'all' ||
+        filters.device !== 'all') && (
         <button
           type="button"
           onClick={() => onChange(DEFAULT_HISTORY_FILTERS)}

@@ -3,6 +3,13 @@ export type SpinEventType = 'played' | 'final' | 'win'
 export const SPIN_STAKES = [2, 5, 10] as const
 export const SPIN_MULTIPLIERS = [2, 3, 4, 5] as const
 export const SESSION_NOTE_PRESETS = ['focus', 'fatigué', 'tilt', 'normal'] as const
+export const SESSION_DEVICES = ['ordi', 'phone'] as const
+export type SessionDevice = (typeof SESSION_DEVICES)[number]
+
+export const DEVICE_LABELS: Record<SessionDevice, string> = {
+  ordi: 'Ordi',
+  phone: 'Téléphone',
+}
 export const TOURNAMENT_STAKES = [1, 3, 5, 10] as const
 export const TOURNAMENT_TICKET_VALUE = 0
 
@@ -35,6 +42,8 @@ export interface Session {
   endTime?: string
   isActive: boolean
   note?: string
+  /** Appareil utilisé pour jouer (ordi ou téléphone). */
+  device?: SessionDevice
   /** P&L manuel si les multiplicateurs enregistrés ne reflètent pas la réalité. */
   profitOverride?: number
 }
@@ -83,6 +92,8 @@ export interface Settings {
   bankrollGoal: number
   /** Tags de notes personnalisés (en plus des presets). */
   customNoteTags: string[]
+  /** Dernier appareil choisi pour une nouvelle session. */
+  selectedDevice?: SessionDevice
   /** Thème d'affichage. */
   theme: AppTheme
 }

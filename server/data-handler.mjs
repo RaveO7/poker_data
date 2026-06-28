@@ -25,6 +25,8 @@ function migrateSettings(raw = {}) {
     maxSpinsPerDay: raw.maxSpinsPerDay ?? 0,
     bankrollGoal: raw.bankrollGoal ?? 0,
     customNoteTags: Array.isArray(raw.customNoteTags) ? raw.customNoteTags : [],
+    selectedDevice:
+      raw.selectedDevice === 'ordi' || raw.selectedDevice === 'phone' ? raw.selectedDevice : undefined,
     theme: raw.theme === 'light' ? 'light' : 'dark',
   }
 }
