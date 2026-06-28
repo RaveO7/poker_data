@@ -27,6 +27,7 @@ function App() {
     updateSession,
     setSessionDevice,
     saveSessionEdits,
+    deleteSession,
     undoLastAction,
     addSpin,
     startTournament,
@@ -129,7 +130,11 @@ function App() {
         <StatsOverview data={data} />
         <GoalsPanel data={data} />
 
-        <HistorySection data={data} onSaveSessionEdits={saveSessionEdits} />
+        <HistorySection
+          data={data}
+          onSaveSessionEdits={saveSessionEdits}
+          onDeleteSession={deleteSession}
+        />
         <SettingsPanel
           data={data}
           onUpdate={updateSettings}

@@ -19,9 +19,10 @@ interface HistorySectionProps {
     profit: number,
     winMultipliers: number[],
   ) => void
+  onDeleteSession: (id: string) => void
 }
 
-export function HistorySection({ data, onSaveSessionEdits }: HistorySectionProps) {
+export function HistorySection({ data, onSaveSessionEdits, onDeleteSession }: HistorySectionProps) {
   const [filters, setFilters] = useState<HistoryFilterState>(DEFAULT_HISTORY_FILTERS)
   const availableStakes = getAvailableStakes(data)
 
@@ -32,7 +33,12 @@ export function HistorySection({ data, onSaveSessionEdits }: HistorySectionProps
         <HistoryFilters filters={filters} availableStakes={availableStakes} onChange={setFilters} />
       </div>
       <DailyHistory data={data} filters={filters} />
-      <SessionHistory data={data} filters={filters} onSaveSessionEdits={onSaveSessionEdits} />
+      <SessionHistory
+        data={data}
+        filters={filters}
+        onSaveSessionEdits={onSaveSessionEdits}
+        onDeleteSession={onDeleteSession}
+      />
     </div>
   )
 }

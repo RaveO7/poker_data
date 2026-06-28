@@ -34,6 +34,7 @@ interface SessionHistoryProps {
     profit: number,
     winMultipliers: number[],
   ) => void
+  onDeleteSession: (id: string) => void
 }
 
 interface EditForm {
@@ -74,7 +75,7 @@ function resizeWinMultipliers(
   return next.slice(0, won)
 }
 
-export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHistoryProps) {
+export function SessionHistory({ data, filters, onSaveSessionEdits, onDeleteSession }: SessionHistoryProps) {
   const sessions = filterSessions(data, filters)
     .map((session) => computeSessionStatsFiltered(data, session, filters))
     .sort((a, b) => b.session.startTime.localeCompare(a.session.startTime))
@@ -198,6 +199,20 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
       form.winMultipliers,
     )
     cancelEdit()
+  }
+
+  const confirmDelete = (stats: (typeof sessions)[number]) => {
+    const { session } = stats
+    const label = session.isActive ? 'session en cours' : formatDate(session.date)
+    const detail = `${stats.spinsPlayed} spins, ${stats.tournamentsPlayed} tournois, ${formatMoney(stats.profit)}`
+    const message = session.isActive
+      ? `Supprimer la ${label} (${detail}) ?\n\nLa session active et toutes ses données seront effacées.`
+      : `Supprimer la session du ${label} (${detail}) ?\n\nCette action est irréversible.`
+
+    if (!window.confirm(message)) return
+
+    if (editingId === session.id) cancelEdit()
+    onDeleteSession(session.id)
   }
 
   if (sessions.length === 0) {
@@ -429,14 +444,24 @@ export function SessionHistory({ data, filters, onSaveSessionEdits }: SessionHis
                       </p>
                     </div>
                     {!isHistorical && (
-                      <button
-                        type="button"
-                        onClick={() => startEdit(s)}
-                        className="rounded-lg bg-white/10 px-3 py-1.5 text-xs hover:bg-white/20"
-                        title="Modifier la session"
-                      >
-                        Modifier
-                      </button>
+                      <div className="flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(s)}
+                          className="rounded-lg bg-white/10 px-3 py-1.5 text-xs hover:bg-white/20"
+                          title="Modifier la session"
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => confirmDelete(s)}
+                          className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/25"
+                          title="Supprimer la session"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

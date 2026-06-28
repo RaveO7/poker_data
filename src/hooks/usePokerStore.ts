@@ -166,6 +166,18 @@ export function usePokerStore() {
     [update],
   )
 
+  const deleteSession = useCallback(
+    (sessionId: string) => {
+      update((prev) => ({
+        ...prev,
+        sessions: prev.sessions.filter((s) => s.id !== sessionId),
+        spins: prev.spins.filter((s) => s.sessionId !== sessionId),
+        tournaments: prev.tournaments.filter((t) => t.sessionId !== sessionId),
+      }))
+    },
+    [update],
+  )
+
   const undoLastAction = useCallback(() => {
     update((prev) => {
       const active = prev.sessions.find((s) => s.isActive)
@@ -325,6 +337,7 @@ export function usePokerStore() {
     updateSession,
     setSessionDevice,
     saveSessionEdits,
+    deleteSession,
     undoLastAction,
     addSpin,
     startTournament,
